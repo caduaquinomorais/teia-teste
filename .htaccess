@@ -1,0 +1,23 @@
+# TEIA — .htaccess da RAIZ do repositório.
+# Usado quando o repositório inteiro é publicado numa pasta do site (ex.: KingHost www/teia
+# via Git Webhook). Encaminha tudo para public/ e bloqueia o código-fonte.
+# Se o document root puder apontar direto para public/, este arquivo não é usado.
+
+Options -Indexes -MultiViews
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Código, testes, documentação, scripts e arquivos ocultos nunca são servidos.
+    RewriteRule ^(app|bin|tests|docs|vendor)(/|$) - [R=404,L]
+    RewriteRule (^|/)\. - [R=404,L]
+    RewriteRule \.(md|sql|sh|ini|lock|json|txt)$ - [R=404,L]
+
+    # Encaminha para a pasta pública.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Sem mod_rewrite o site não funciona: bloqueia tudo para não expor o código.
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>

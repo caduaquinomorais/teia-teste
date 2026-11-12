@@ -1,0 +1,25 @@
+# Dados persistentes (nunca versionar)
+/teia-ade-sampa-data/
+*.sqlite
+*.sqlite3
+*.db
+app.key
+config.local.php
+/app/config/*.local.php
+
+# Logs, sessões, temporários
+*.log
+/tmp/
+
+# Testes (relatórios gerados)
+/tests/visual/reports/
+/tests/.tmp/
+
+# Assets brutos exportados do Figma (originais pesados; versões otimizadas vão para public/assets na F2)
+/docs/figma/assets-brutos/
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

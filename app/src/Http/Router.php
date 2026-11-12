@@ -8,7 +8,7 @@ defined('TEIA_ROOT') || exit;
 
 /**
  * Roteador próprio com parâmetros dinâmicos por regex.
- *   $router->get('/admin/paginas/{slug:[a-z0-9-]+}', $handler);
+ *   $router->get('/secao/{slug:[a-z0-9-]+}', $handler);
  * Parâmetro sem regex usa [^/]+.
  */
 final class Router

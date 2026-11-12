@@ -6,20 +6,17 @@ namespace Teia\Core;
 
 defined('TEIA_ROOT') || exit;
 
-/** Configuração: padrões de app/config/app.php sobrescritos por <dados>/config.local.php. */
+/** Configuração: padrões de app/config/app.php sobrescritos por app/config/app.local.php (fora do Git). */
 final class Config
 {
-    private array $values;
-
-    public function __construct(array $values)
+    public function __construct(private readonly array $values)
     {
-        $this->values = $values;
     }
 
-    public static function load(Paths $paths): self
+    public static function load(string $dir): self
     {
-        $values = require $paths->app . '/config/app.php';
-        $local = $paths->localConfig();
+        $values = require $dir . '/app.php';
+        $local = $dir . '/app.local.php';
         if (is_file($local)) {
             $override = require $local;
             if (is_array($override)) {
@@ -32,10 +29,5 @@ final class Config
     public function get(string $key, mixed $default = null): mixed
     {
         return array_key_exists($key, $this->values) ? $this->values[$key] : $default;
-    }
-
-    public function int(string $key, int $default = 0): int
-    {
-        return (int) $this->get($key, $default);
     }
 }

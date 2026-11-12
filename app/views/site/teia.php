@@ -1,9 +1,9 @@
 <?php
 /**
  * Página do TEIA (frame Figma 212:2903). A ORDEM e o LAYOUT das seções são fixos aqui;
- * o CMS altera apenas o conteúdo ($c).
+ * os textos vêm de app/content/teia.php ($c).
  * @var \Teia\Core\View $view
- * @var \Teia\Cms\Render $h
+ * @var \Teia\View\Render $h
  * @var array $c conteúdo da página "teia"
  * @var array $layout
  */
@@ -49,14 +49,14 @@ $faq = array_values(array_filter($c['duvidas']['itens'], static fn ($i) => trim(
     </div>
 </section>
 
-<?php foreach ($c['espacos']['itens'] as $i => $espaco): $alt = $i % 2 === 1; $idTitulo = 'espaco-' . $espaco['ancora']; ?>
+<?php foreach ($c['espacos'] as $i => $espaco): $alt = $i % 2 === 1; $idTitulo = 'espaco-' . $espaco['ancora']; ?>
 <section class="space<?= $alt ? ' space--alt' : '' ?>" id="<?= e($espaco['ancora']) ?>" aria-labelledby="<?= e($idTitulo) ?>">
     <div class="space__inner container">
         <div class="space__text">
             <div class="space__copy">
                 <p class="tag tag--clara"><?= e($espaco['tag']) ?></p>
                 <h2 class="h2" id="<?= e($idTitulo) ?>"><?= e($espaco['titulo']) ?></h2>
-                <div class="body1 rich"><?= $h->rich($espaco['texto']) ?></div>
+                <div class="body1 rich"><?= $h->paragraphs($espaco['texto']) ?></div>
             </div>
             <div class="btn-row">
                 <a class="btn btn--secondary" href="#mapa"><?= e($espaco['botao_mapa']) ?></a>
@@ -84,14 +84,14 @@ $faq = array_values(array_filter($c['duvidas']['itens'], static fn ($i) => trim(
 <?php endforeach; ?>
 
 <section class="map-section" id="mapa" aria-labelledby="mapa-titulo">
-    <div class="map-section__bg" aria-hidden="true"><?= $h->picture('asset:mapa-fundo', '', ['class' => 'map-section__bg-img', 'loading' => 'lazy']) ?></div>
+    <div class="map-section__bg" aria-hidden="true"><?= $h->picture('mapa-fundo', '', ['class' => 'map-section__bg-img', 'loading' => 'lazy']) ?></div>
     <div class="map-section__inner container">
         <div class="map-section__text">
             <h2 class="h2 map-section__title" id="mapa-titulo"><?= e($mapa['titulo']) ?></h2>
             <p class="body1"><?= e($mapa['texto']) ?></p>
             <a class="btn btn--secondary"<?= $h->href($agendamento) ?>><?= e($mapa['botao']) ?></a>
         </div>
-        <?php if ($mapa['mapa_personalizado'] !== ''): ?>
+        <?php if (\Teia\Security\UrlValidator::isGoogleMapsEmbed($mapa['mapa_personalizado'])): ?>
             <div class="map-card map-card--full">
                 <iframe class="map-card__frame" src="<?= e($mapa['mapa_personalizado']) ?>" title="Mapa das unidades do Teia" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
             </div>
@@ -139,7 +139,7 @@ $faq = array_values(array_filter($c['duvidas']['itens'], static fn ($i) => trim(
                             <span class="h5"><?= $n + 1 ?>. <?= e($item['pergunta']) ?></span>
                             <img class="faq__icon" src="<?= e(url('/assets/icons/caret-circle-down.svg')) ?>" alt="" width="32" height="32">
                         </summary>
-                        <div class="faq__answer body1 rich"><?= $h->rich($item['resposta']) ?></div>
+                        <div class="faq__answer body1 rich"><?= $h->paragraphs($item['resposta']) ?></div>
                     </details>
                 <?php endforeach; ?>
             </div>

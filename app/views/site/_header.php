@@ -1,13 +1,12 @@
 <?php
 /**
  * Cabeçalho institucional ("menu header", variante "programas") + submenu do TEIA.
- * Links vazios = TODO-LINK (preencher no painel em "Cabeçalho e rodapé").
+ * Links vazios = TODO-LINK (preencher em app/content/layout.php).
  * @var array $layout
- * @var \Teia\Cms\Render $h
+ * @var \Teia\View\Render $h
  */
 defined('TEIA_ROOT') || exit;
 $cab = $layout['cabecalho'];
-$sub = $layout['submenu'];
 ?>
 <header class="site-header" id="topo">
     <div class="site-header__inner">
@@ -41,7 +40,7 @@ $sub = $layout['submenu'];
             <img src="<?= e(url('/assets/icons/logo-teia.svg')) ?>" alt="Teia" width="47" height="14">
         </a>
         <ul class="submenu__list">
-            <?php foreach ($sub['itens'] as $item): ?>
+            <?php foreach ($layout['submenu'] as $item): ?>
                 <li><a class="submenu__link"<?= $h->href($item['link']) ?>><?= e($item['rotulo']) ?></a></li>
             <?php endforeach; ?>
         </ul>

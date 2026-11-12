@@ -368,7 +368,7 @@ table{border-collapse:collapse;width:100%;background:#fff;font-size:14px}td,th{b
 </style></head><body>
 <h1>Relatório visual — Teia</h1>
 <p class="meta">${esc(result.data)} · ${esc(result.sistema)} · ${esc(result.navegador)} · Node ${esc(result.node)} · ${esc(BASE)}</p>
-<p class="meta">Conteúdo de teste: resposta da 1ª dúvida = texto de layout do Figma e PDFs de teste (somente nesta instância temporária). 1º item das Dúvidas aberto, como no Figma.</p>
+<p class="meta">Conteúdo de teste: resposta da 1ª dúvida = texto de layout do Figma e links de PDF de teste (somente na pasta temporária de conteúdo). 1º item das Dúvidas aberto, como no Figma.</p>
 <p class="sum">${passed}/${checks.length} verificações aprovadas · altura da página: site ${f.alturaPagina}px · Figma ${f.alturaFigma}px</p>
 <h2>Comparação lado a lado (1440 px)</h2>
 <div class="side"><figure><figcaption>Figma</figcaption><img src="figma-1440.png" alt="Captura do Figma"></figure>

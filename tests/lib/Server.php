@@ -5,22 +5,20 @@ declare(strict_types=1);
 namespace Teia\Tests;
 
 /**
- * Servidor embutido do PHP para os testes HTTP, com diretório de dados temporário e isolado.
+ * Servidor embutido do PHP para os testes HTTP.
+ * $contentDir (opcional) troca a pasta de conteúdo (TEIA_CONTENT_DIR) para testar outros textos.
  */
 final class Server
 {
     /** @var resource|null */
     private $proc = null;
-    public readonly string $dataDir;
     public readonly string $base;
     private int $port;
+    private string $logDir;
 
-    public function __construct(?string $dataDir = null)
+    public function __construct(private readonly ?string $contentDir = null)
     {
-        $this->dataDir = $dataDir ?? tmpdir('teia-dados-');
-        if (!is_dir($this->dataDir)) {
-            mkdir($this->dataDir, 0700, true);
-        }
+        $this->logDir = tmpdir('teia-servidor-');
         $this->port = self::freePort();
         $this->base = 'http://127.0.0.1:' . $this->port;
         $this->start();
@@ -39,8 +37,10 @@ final class Server
         }
         array_push($cmd, '-d', 'display_errors=0', '-S', '127.0.0.1:' . $this->port, '-t', $root . '/public', $root . '/public/index.php');
         $env = getenv();
-        $env['TEIA_DATA_DIR'] = $this->dataDir;
-        $log = $this->dataDir . DIRECTORY_SEPARATOR . 'servidor-teste.log';
+        if ($this->contentDir !== null) {
+            $env['TEIA_CONTENT_DIR'] = $this->contentDir;
+        }
+        $log = $this->logDir . DIRECTORY_SEPARATOR . 'servidor-teste.log';
         $this->proc = proc_open($cmd, [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']], $pipes, $root, $env);
         if (!is_resource($this->proc)) {
             throw new \RuntimeException('Falha ao iniciar o servidor de testes.');

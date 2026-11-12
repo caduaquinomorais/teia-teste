@@ -2,7 +2,7 @@
 /**
  * Layout do site público.
  * @var \Teia\Core\View $view
- * @var \Teia\Cms\Render $h
+ * @var \Teia\View\Render $h
  * @var array $layout conteúdo de cabeçalho/submenu/rodapé
  * @var string $content
  * @var string $title

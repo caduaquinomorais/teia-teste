@@ -15,7 +15,7 @@ Decisões tomadas onde o Figma não tem especificação, ou onde foi preciso aju
 **Decisão do responsável:** o site do Teia ficará em `www.<domínio>/teia`, e os outros projetos em outros domínios ou subdomínios. Por isso o cabeçalho e o rodapé ficam **iguais ao Figma**.
 
 - Os links institucionais (Home, Sobre, Programas, Comunicação, Transparência e o logo) ficam **vazios** e marcados no código como `TODO-LINK`.
-- Esses links são editáveis no painel em *Cabeçalho e rodapé*.
+- Esses links ficam em `app/content/layout.php`.
 - Link vazio: o item aparece, mas não navega (`<a>` sem `href`, com `data-link-pendente`).
 - "Programas" fica destacado como seção atual (sublinhado azul), como no Figma.
 - O botão "Agendamentos" leva a `https://app.adesampa.com.br/welcome`.
@@ -24,33 +24,33 @@ Decisões tomadas onde o Figma não tem especificação, ou onde foi preciso aju
 
 - Mantém as 8 colunas, as redes sociais, os links legais, o CNPJ, o endereço e os logos, com os textos exatos do Figma, inclusive a grafia "Atendimen**r**o" (P-18).
 - Todos os links começam vazios (`TODO-LINK`).
-- As cores das barras de cada coluna são identidade visual: ficam fixas no template e o CMS não as altera.
+- As cores das barras de cada coluna são identidade visual: ficam fixas no template, fora do arquivo de conteúdo.
 - Redes sociais sem link aparecem com opacidade de 60% (indicação visual de inativas).
 
 ## D-03 — Breadcrumb · **Aprovada**
 
-O texto "Início / Programas / Teia" é mantido como no Figma. "Início" e "Programas" têm links editáveis, inicialmente vazios (`TODO-LINK`). O item atual usa `aria-current="page"`.
+O texto "Início / Programas / Teia" é mantido como no Figma. "Início" e "Programas" têm links em `app/content/teia.php`, inicialmente vazios (`TODO-LINK`). O item atual usa `aria-current="page"`.
 
 ## D-04 — Página única com âncoras · **Adotada**
 
 - Âncoras: `#coworking`, `#podcast`, `#fotografia`, `#musica`, `#mapa`, `#duvidas` e `#normas`.
 - O botão "Mapa dos Teias" leva a `#mapa`.
 - A rolagem é suave, respeitando `prefers-reduced-motion`, e o foco vai para a seção (acessibilidade).
-- O identificador de cada espaço é editável no CMS, com validação.
+- O identificador de cada espaço é o campo `ancora` em `app/content/teia.php`.
 
 ## D-05 — Mapa com Google Maps · **Aprovada**
 
 **Decisão do responsável:** a seção de mapa terá um Google Maps. A listagem de endereços salvos será alimentada depois.
 
 - O quadro de 638 × 354 px do Figma tem, à esquerda, um **painel de unidade** em HTML que reproduz o painel da imagem do Figma (cabeçalho `#6C6C6C` e corpo `#F5F5F5`). À direita fica o **Google Maps embutido** (iframe sem chave de API) do endereço da unidade.
-- **Lista de unidades editável** no CMS: nome, zona, classificação, situação e endereço. Com mais de uma unidade, aparece um seletor que troca o painel e o mapa.
-- **Mapa personalizado (opcional):** se a equipe criar um mapa no Google My Maps com todas as unidades, basta colar o link de incorporação. Nesse caso o iframe ocupa o quadro inteiro.
+- **Lista de unidades** em `app/content/teia.php`: nome, zona, classificação, situação e endereço. Com mais de uma unidade, aparece um seletor que troca o painel e o mapa.
+- **Mapa personalizado (opcional):** se a equipe criar um mapa no Google My Maps com todas as unidades, basta informar o link de incorporação em `mapa_personalizado`. Nesse caso o iframe ocupa o quadro inteiro.
 - CSP: `frame-src` liberado só para `www.google.com` e `maps.google.com`, e só na página do mapa.
 - Os ícones de "voltar" e "rotas" da imagem do Figma **não** foram recriados: eram parte da interface do Google, e não assets do projeto.
 
 ## D-06 — Carrossel de fotos · **Adotada**
 
-- Cada espaço tem uma lista de fotos no CMS.
+- Cada espaço tem uma lista de fotos em `app/content/teia.php`.
 - Os pontinhos só aparecem com **2 fotos ou mais**. A linha de pontos mantém os 8 px de altura mesmo vazia, preservando a geometria do Figma.
 - Funciona com pontos clicáveis (`aria-pressed`), setas do teclado e gesto de arrastar. Não há rotação automática, por acessibilidade.
 - Pontos: 8 px; ativo `#14171F` e inativo `#A3AAB6` (dos SVGs do Figma). Abaixo de 1024 px, a área de toque é de 44 × 44 px.
@@ -85,11 +85,11 @@ O Figma só tem o desktop de 1440 px.
 
 ## D-10 — Página 404 · **Adotada**
 
-Usa o cabeçalho, o submenu e o rodapé, com uma seção no estilo do banner: etiqueta "Erro 404", título, texto e botão "Voltar ao início". Os textos são editáveis no CMS (página "erro-404").
+Usa o cabeçalho, o submenu e o rodapé, com uma seção no estilo do banner: etiqueta "Erro 404", título, texto e botão "Voltar ao início". Os textos ficam em `app/content/erro-404.php`.
 
 ## D-11 — Fundos do banner e do mapa · **Adotada**
 
-As formas decorativas são imagens exportadas do Figma, servidas como `<picture>` (WebP + JPG) posicionado atrás do conteúdo, sem estilo inline (compatível com a CSP). O fundo do mapa fica com 70% de opacidade sobre `#141720`, como no Figma. A imagem do banner é editável no CMS.
+As formas decorativas são imagens exportadas do Figma, servidas como `<picture>` (WebP + JPG) posicionado atrás do conteúdo, sem estilo inline (compatível com a CSP). O fundo do mapa fica com 70% de opacidade sobre `#141720`, como no Figma. A imagem do banner é definida em `app/content/teia.php`.
 
 ## D-12 — Contraste dos links do rodapé · **Ajuste de acessibilidade**
 
@@ -105,8 +105,8 @@ No Figma, a resposta 1 é *Lorem ipsum* e as demais não existem. Para não publ
 
 ## D-15 — Botão "Baixar PDF" só com arquivo · **Adotada**
 
-Os cards de Normas aparecem sempre, mas o botão só aparece quando há um PDF enviado no CMS (P-02). O bloco de texto dos cards mantém a altura de 141 px do Figma, para que os cards tenham a mesma altura.
+Os cards de Normas aparecem sempre, mas o botão só aparece quando há um PDF informado (arquivo em `public/assets/docs` ou URL `https`) (P-02). O bloco de texto dos cards mantém a altura de 141 px do Figma, para que os cards tenham a mesma altura.
 
-## D-16 — Painel administrativo · **Adotada**
+## D-16 — Remoção do painel administrativo (CMS) · **Aprovada**
 
-O painel não existe no Figma. Ele usa a identidade do Teia (fonte Geist, `#14171F`, botões do componente Teia) com um layout utilitário: barra superior, cartões e formulários. Formulários longos têm a barra "Publicar alterações" fixa no rodapé da tela.
+A pedido do responsável (12/11/2026), o painel, o banco de dados, os usuários, o histórico, os uploads, o instalador e os backups foram **removidos**. O conteúdo passou a ficar em arquivos PHP em `app/content/`, editados por quem desenvolve e publicados via Git (ver CONTEUDO.md). A versão com painel continua na tag Git `com-cms`.

@@ -1,10 +1,10 @@
 <?php
 /**
  * Rodapé institucional ("Rodapé/Redapé V1").
- * As cores das barras das colunas são identidade visual (fixas aqui, não editáveis).
+ * As cores das barras das colunas são identidade visual (fixas aqui).
  * Links vazios = TODO-LINK.
  * @var array $layout
- * @var \Teia\Cms\Render $h
+ * @var \Teia\View\Render $h
  */
 defined('TEIA_ROOT') || exit;
 $r = $layout['rodape'];
@@ -48,7 +48,7 @@ $redes = [
     </div>
 
     <nav class="site-footer__columns container" aria-label="Mapa do site ADE SAMPA">
-        <?php foreach ($colunas as $key => $cor): $col = $r[$key]; ?>
+        <?php foreach ($colunas as $key => $cor): $col = $r['colunas'][$key]; ?>
             <div class="site-footer__col">
                 <p class="site-footer__col-title"><span class="site-footer__bar site-footer__bar--<?= e($cor) ?>" aria-hidden="true"></span><?= e($col['titulo']) ?></p>
                 <ul class="site-footer__links">

@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Teia\Tests\Server;
 use Teia\Tests\T;
 
+use function Teia\Tests\tmpdir;
+
 $server = null;
 $srv = static function () use (&$server): Server {
     return $server ??= new Server();
@@ -20,7 +22,14 @@ return [
         }
         T::contains('<html lang="pt-BR"', $r->body);
         T::contains('href="https://app.adesampa.com.br/welcome"', $r->body);
+        T::contains('data-link-pendente="true"', $r->body, 'links institucionais pendentes (TODO-LINK)');
+        T::contains('https://www.google.com/maps?q=', $r->body);
         T::notContains('Lorem', $r->body);
+    },
+    'perguntas sem resposta e documentos sem PDF não exibem conteúdo provisório' => function () use ($srv): void {
+        $body = $srv()->client()->get('/')->body;
+        T::notContains('O uso do Teia é totalmente gratuito?', $body);
+        T::notContains('Baixar PDF', $body);
     },
     'visitante não recebe cookie' => function () use ($srv): void {
         T::same([], $srv()->client()->get('/')->setCookies());
@@ -32,6 +41,7 @@ return [
         T::matches("/script-src 'self' 'nonce-[A-Za-z0-9_-]{20,}'/", $csp);
         T::contains("frame-ancestors 'none'", $csp);
         T::contains("object-src 'none'", $csp);
+        T::contains('frame-src https://www.google.com https://maps.google.com', $csp);
         T::same('nosniff', $r->header('X-Content-Type-Options'));
         T::same('strict-origin-when-cross-origin', $r->header('Referrer-Policy'));
         T::true($r->header('Permissions-Policy') !== null);
@@ -45,16 +55,22 @@ return [
         T::contains('nonce="' . $m[1] . '"', $a->body);
         T::true($a->header('Content-Security-Policy') !== $b->header('Content-Security-Policy'));
     },
-    'página 404 personalizada, sem detalhes internos' => function () use ($srv): void {
+    'página 404 personalizada; iframe do mapa bloqueado fora da home' => function () use ($srv): void {
         $r = $srv()->client()->get('/pagina-que-nao-existe');
         T::same(404, $r->status);
         T::contains('Página não encontrada', $r->body);
-        T::notContains('Stack', $r->body);
+        T::contains("frame-src 'none'", (string) $r->header('Content-Security-Policy'));
         T::notContains(DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR, $r->body);
     },
-    'código-fonte e dados não são servidos' => function () use ($srv): void {
+    'painel, instalador e rotas de mídia não existem mais (404)' => function () use ($srv): void {
         $c = $srv()->client();
-        foreach (['/app/bootstrap.php', '/app/config/app.php', '/../app/bootstrap.php', '/.htaccess', '/index.php/../../app/bootstrap.php', '/midia/../../app.key', '/midia/' . str_repeat('a', 32) . '.php'] as $path) {
+        foreach (['/admin', '/admin/login', '/instalar', '/cron/backup', '/midia/' . str_repeat('a', 32) . '.webp'] as $path) {
+            T::same(404, $c->get($path)->status, $path);
+        }
+    },
+    'código-fonte não é servido' => function () use ($srv): void {
+        $c = $srv()->client();
+        foreach (['/app/bootstrap.php', '/app/config/app.php', '/../app/bootstrap.php', '/.htaccess', '/index.php/../../app/bootstrap.php', '/app/content/teia.php'] as $path) {
             $r = $c->get($path);
             T::true(in_array($r->status, [400, 404], true), "$path → {$r->status}");
             T::notContains('<?php', $r->body);
@@ -66,12 +82,36 @@ return [
         T::same(200, $c->get('/assets/fonts/geist-latin.woff2')->status);
         T::same(200, $c->get('/assets/images/foto-coworking.webp')->status);
     },
-    'método não permitido retorna 405' => function () use ($srv): void {
-        T::same(405, $srv()->client()->get('/admin/sair')->status);
+    'POST no site retorna 405' => function () use ($srv): void {
+        T::same(405, $srv()->client()->post('/', ['a' => 'b'])->status);
     },
-    'antes da instalação: site funciona com conteúdo do Figma e painel leva ao instalador' => function () use ($srv): void {
-        $r = $srv()->client()->get('/admin');
-        T::same(303, $r->status);
-        T::contains('/instalar', $r->location());
+    'erro interno: página genérica com código de referência, sem detalhes' => function (): void {
+        $dir = tmpdir();
+        foreach (['layout', 'erro-404'] as $f) {
+            copy(TEIA_ROOT . "/app/content/$f.php", "$dir/$f.php");
+        }
+        file_put_contents("$dir/teia.php", "<?php return ['quebrado' => true];\n");
+        $s = new Server($dir);
+        $r = $s->client()->get('/');
+        T::same(500, $r->status);
+        T::matches('/Código de referência: <strong>[0-9A-F]{8}<\/strong>/', $r->body);
+        T::notContains('quebrado', $r->body);
+        T::notContains('.php', $r->body);
+        $s->stop();
+    },
+    'conteúdo editado no arquivo aparece escapado (sem XSS)' => function (): void {
+        $dir = tmpdir();
+        foreach (['layout', 'erro-404', 'teia'] as $f) {
+            copy(TEIA_ROOT . "/app/content/$f.php", "$dir/$f.php");
+        }
+        $src = (string) file_get_contents("$dir/teia.php");
+        $src = str_replace("'resposta' => ''],\n            ['pergunta' => 'Preciso", "'resposta' => '<script>alert(1)</script> Sim, é gratuito.'],\n            ['pergunta' => 'Preciso", $src);
+        file_put_contents("$dir/teia.php", $src);
+        $s = new Server($dir);
+        $body = $s->client()->get('/')->body;
+        T::contains('1. O uso do Teia é totalmente gratuito?', $body);
+        T::contains('&lt;script&gt;alert(1)&lt;/script&gt; Sim, é gratuito.', $body);
+        T::notContains('<script>alert(1)', $body);
+        $s->stop();
     },
 ];

@@ -67,15 +67,6 @@ final class Http
         }
         return $res;
     }
-
-    /** Extrai o token CSRF de uma página. */
-    public static function csrf(string $html): string
-    {
-        if (!preg_match('/name="_csrf" value="([^"]+)"/', $html, $m)) {
-            throw new AssertionFailed('Token CSRF não encontrado na página.');
-        }
-        return html_entity_decode($m[1]);
-    }
 }
 
 final class Res

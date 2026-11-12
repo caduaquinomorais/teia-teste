@@ -6,92 +6,64 @@
 Navegador ──► Apache (.htaccess) ──► public/index.php (front controller)
                                         │
                                         ├─ Request::fromGlobals()   base path automático (ex.: /teia)
-                                        ├─ App::handle()            roteador, controladores, tratamento de erros
-                                        │     ├─ SiteController     site público (sem sessão, sem cookies)
-                                        │     ├─ Admin*Controller   painel (sessão, CSRF, permissões)
-                                        │     └─ InstallController  /instalar (somente antes da instalação)
+                                        ├─ App::handle()            roteador, SiteController, tratamento de erros
+                                        │     └─ App::content()     lê app/content/<nome>.php
                                         └─ SecurityHeaders::apply   CSP com nonce, nosniff, HSTS (HTTPS)…
-
-Dados persistentes (fora do Git e da área pública):
-../teia-ade-sampa-data/
-├── database/teia.sqlite   conteúdo, usuários, histórico, auditoria
-├── uploads/               imagens reprocessadas e PDFs (servidos por /midia/…)
-├── backups/               ZIPs de backup
-├── logs/                  app-AAAA-MM-DD.log
-├── sessions/              sessões do painel
-├── tmp/
-├── app.key                chave mestra (32 bytes)
-└── config.local.php       configuração local (opcional)
 ```
+
+O site não tem banco de dados, sessões, cookies, formulários, uploads nem diretório de dados. Todo o estado está no repositório Git.
 
 ## Estrutura do repositório
 
 ```
-public/            única pasta que deveria ser pública: index.php, .htaccess, assets (css, js, fontes, ícones, imagens)
+public/            pasta pública: index.php, .htaccess, assets (css, js, fontes, ícones, imagens, docs)
 app/
   bootstrap.php    autoloader PSR-4 (Teia\ → app/src) e helpers
   src/
-    Core/          App (serviços e rotas), Paths, Config, View, Logger, helpers (e(), url(), asset())
-    Http/          Request, Response, Router, HttpException, Controller/*
-    Database/      Database (PDO + transações), Migrator
-    Security/      Keys, Csrf, SecurityHeaders, PasswordPolicy, RateLimiter, UrlValidator, RichText
-    Auth/          Auth, SessionManager, UserRepository, Audit
-    Cms/           PageRegistry, Schema (tipos/validação), ContentRepository, MediaService, Render
-    Backup/        BackupService
-    Install/       Installer
-  content/         DEFINIÇÕES das páginas editáveis (teia.php, layout.php, erro-404.php)
-  views/           templates PHP (site/, admin/, install/, error.php)
-  migrations/      001_estrutura_inicial.sql …
-  config/          app.php (padrões), common-passwords.txt
-  vendor/          vazio: nenhuma biblioteca de terceiros
+    Core/          App (rotas, conteúdo, erros), Config, View, Logger, helpers (e(), url(), asset(), csp_nonce())
+    Http/          Request, Response, Router, HttpException, Controller/SiteController
+    Security/      SecurityHeaders, UrlValidator
+    View/          Render (picture, links, parágrafos, PDFs)
+  content/         CONTEÚDO do site: teia.php, layout.php, erro-404.php
+  views/           templates PHP: site/ (layout, cabeçalho, rodapé, página, 404) e error.php
+  config/          app.php (padrões) + app.local.php opcional (fora do Git)
 bin/               php.sh, serve.sh, php-dev.ini, preparar-assets.php (desenvolvimento)
 tests/             run.php, unit/, http/, visual/, lib/
 docs/
 ```
 
-Os módulos `Mail/` e `Contact/` previstos no escopo original **não foram criados**: o Figma do TEIA não tem formulário, e a ausência foi confirmada pelo responsável em 12/11/2026 (ver `PENDENCIAS_DE_CONTEUDO.md`, P-10).
-
 ## Ciclo de uma requisição
 
-1. O `.htaccess` (da raiz do repositório e de `public/`) manda para `public/index.php` tudo o que não é arquivo estático.
-2. `Request::fromGlobals()` calcula o **base path** a partir do `SCRIPT_NAME`, o que permite rodar em subpasta (`/teia`).
-3. `App::handle()` gera o **nonce** da CSP, registra as rotas e chama o controlador.
-4. Exceções:
-   - `HttpException` vira uma resposta com o status indicado.
-   - Qualquer outro erro vira **500 genérico com código de referência**; os detalhes ficam só em `logs/`.
+1. O `.htaccess` da raiz encaminha tudo para `public/`. O `.htaccess` de `public/` manda para `index.php` o que não é arquivo estático.
+2. `Request::fromGlobals()` calcula o **base path** pelo `SCRIPT_NAME`, o que permite rodar em subpasta (`/teia`).
+3. `App::handle()` gera o **nonce** da CSP e responde:
+   - `GET /` → `SiteController::home`;
+   - qualquer outro caminho → **404** (página do site);
+   - outro método → **405**.
+4. Erros inesperados viram uma página **500 genérica com código de referência**. Os detalhes vão só para o log do PHP do servidor (`error_log`).
 5. Toda resposta recebe os cabeçalhos de segurança.
 
-## Rotas
+## Conteúdo
 
-| Método | Caminho | Quem |
-|---|---|---|
-| GET | `/` | site público |
-| GET | `/midia/{32hex}.{webp,jpg,png,pdf}` | arquivos enviados pelo painel |
-| GET/POST | `/instalar` | somente antes da instalação (depois: 404) |
-| GET | `/cron/backup` | Cronjob da KingHost (cabeçalho `X-Cron-Auth`) |
-| GET/POST | `/admin/login`, POST `/admin/sair` | todos |
-| GET/POST | `/admin/recuperar` | recuperação por token |
-| GET | `/admin` | usuários autenticados |
-| GET/POST | `/admin/senha` | usuários autenticados |
-| GET/POST | `/admin/paginas/{slug}`, `/historico`, POST `/restaurar/{versão}` | administradores ou editores com permissão na página |
-| GET/POST | `/admin/usuarios…`, `/admin/backups…`, GET `/admin/auditoria` | somente administradores |
+- `App::content('teia')` lê `app/content/teia.php`, um array PHP com os textos do Figma.
+- Os templates em `app/views/site/` fixam o layout e a ordem das seções. `View\Render` escapa toda a saída.
+- A variável de ambiente `TEIA_CONTENT_DIR` troca a pasta de conteúdo. Ela é usada **só** pelo teste visual, que simula o estado do Figma (dúvida respondida e PDFs).
 
-## CMS: definição no código, conteúdo no banco
+## Configuração
 
-- Cada arquivo em `app/content/` descreve as seções e os campos de uma página. Os **valores padrão** são os textos do Figma.
-- O formulário do painel é **gerado automaticamente** a partir dessa definição (`views/admin/_field.php`).
-- `Schema::normalize()` valida no servidor e só aceita chaves declaradas (lista branca).
-- `ContentRepository` grava o JSON publicado em `pages` e uma cópia em `page_revisions`.
-- `Schema::resolve()` mescla os padrões com os valores do banco. Por isso um **campo novo não exige migração**: ele usa o padrão até ser editado.
-- Os templates (`views/site/*.php`) fixam o layout, a ordem das seções e as cores. O CMS só altera o conteúdo.
+`app/config/app.php` define os padrões. Para sobrescrever num servidor, crie `app/config/app.local.php`, que fica fora do Git:
+
+| Chave | Uso |
+|---|---|
+| `base_path` | Fixa o caminho base (ex.: `'/teia'`) se a detecção automática falhar |
+| `force_https` | Envia HSTS mesmo atrás de proxy que não informa HTTPS |
+| `trusted_proxies` | IPs de proxy cujo `X-Forwarded-Proto` é aceito |
 
 ## Decisões técnicas
 
 | Decisão | Motivo |
 |---|---|
-| SQLite com `journal_mode=DELETE` (sem WAL) | WAL cria arquivos `-wal`/`-shm` e é menos previsível em hospedagem compartilhada. |
-| `BEGIN IMMEDIATE` e SAVEPOINT para aninhamento | Evita deadlocks de upgrade de trava; o controle de profundidade é próprio. |
-| Diretório de dados resolvido de forma determinística | Variável `TEIA_DATA_DIR`, depois `app/config/data-path.local.php`, depois a pasta irmã do projeto. Se a pasta irmã ficar dentro do document root (repositório em `www/teia`), sobe para o pai do document root. |
-| Sessão iniciada só em `/admin` | Visitantes não recebem cookies. |
-| Nenhuma biblioteca externa | Exigência do escopo; `app/vendor/` está vazio. |
-| `php_value` fora do `.htaccess` | Na KingHost (PHP-FPM) essas diretivas causam erro 500; os ajustes são feitos via `ini_set()` no código. |
+| Conteúdo em arquivos PHP | Pedido do responsável: sem CMS. Um array PHP não precisa de parser nem de banco, e o PHP valida a sintaxe (`php -l`). |
+| Nenhuma biblioteca externa | Exigência do escopo. |
+| Sem `php_value` no `.htaccess` | Na KingHost (PHP-FPM) essa diretiva causa erro 500. |
+| Proteção contra execução direta | Todo arquivo PHP em `app/` começa com `defined('TEIA_ROOT') || exit;`. Isso protege mesmo se o servidor ignorar o `.htaccess` (Nginx). |

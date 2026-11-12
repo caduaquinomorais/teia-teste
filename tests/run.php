@@ -20,7 +20,6 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 require __DIR__ . '/lib/Test.php';
 require __DIR__ . '/lib/Server.php';
 require __DIR__ . '/lib/Http.php';
-require __DIR__ . '/lib/Fixtures.php';
 
 error_reporting(E_ALL);
 set_error_handler(static function (int $severity, string $message, string $file, int $line): bool {

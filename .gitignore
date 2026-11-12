@@ -1,10 +1,4 @@
-# Dados persistentes (nunca versionar)
-/teia-ade-sampa-data/
-*.sqlite
-*.sqlite3
-*.db
-app.key
-config.local.php
+# Configuração local do servidor (nunca versionar)
 /app/config/*.local.php
 
 # Logs, sessões, temporários

@@ -2,120 +2,107 @@
 
 declare(strict_types=1);
 
-use Teia\Core\Paths;
-use Teia\Database\Database;
-use Teia\Database\Migrator;
+use Teia\Core\App;
 use Teia\Http\HttpException;
 use Teia\Http\Request;
 use Teia\Http\Router;
+use Teia\Security\UrlValidator;
 use Teia\Tests\T;
-
-use function Teia\Tests\tmpdir;
+use Teia\View\Render;
 
 return [
     'roteador: parâmetros com regex' => function (): void {
         $r = new Router();
-        $r->get('/admin/paginas/{slug:[a-z0-9-]{1,40}}', fn () => 'ok');
-        $r->get('/midia/{file:[a-f0-9]{32}\.(?:webp|jpg)}', fn () => 'm');
-        $m = $r->match('GET', '/admin/paginas/teia');
-        T::same(['slug' => 'teia'], $m['params']);
-        $m = $r->match('GET', '/midia/' . str_repeat('a', 32) . '.webp');
-        T::same(str_repeat('a', 32) . '.webp', $m['params']['file']);
+        $r->get('/secao/{slug:[a-z0-9-]{1,40}}', fn () => 'ok');
+        T::same(['slug' => 'teia'], $r->match('GET', '/secao/teia')['params']);
     },
     'roteador: 404 para caminho inválido (regex não aceita ../)' => function (): void {
         $r = new Router();
-        $r->get('/admin/paginas/{slug:[a-z0-9-]{1,40}}', fn () => 'ok');
-        $ex = T::throws(HttpException::class, fn () => $r->match('GET', '/admin/paginas/../../etc'));
-        T::same(404, $ex->status);
-        $ex = T::throws(HttpException::class, fn () => $r->match('GET', '/admin/paginas/TEIA'));
-        T::same(404, $ex->status);
+        $r->get('/secao/{slug:[a-z0-9-]{1,40}}', fn () => 'ok');
+        T::same(404, T::throws(HttpException::class, fn () => $r->match('GET', '/secao/../../etc'))->status);
+        T::same(404, T::throws(HttpException::class, fn () => $r->match('GET', '/secao/TEIA'))->status);
     },
-    'roteador: 405 com cabeçalho Allow' => function (): void {
+    'roteador: 405 com cabeçalho Allow; HEAD usa a rota GET' => function (): void {
         $r = new Router();
-        $r->post('/admin/sair', fn () => 'x');
-        $ex = T::throws(HttpException::class, fn () => $r->match('GET', '/admin/sair'));
+        $r->get('/', fn () => 'x');
+        $ex = T::throws(HttpException::class, fn () => $r->match('POST', '/'));
         T::same(405, $ex->status);
-        T::same('POST', $ex->headers['Allow']);
+        T::same('GET', $ex->headers['Allow']);
+        T::same([], $r->match('HEAD', '/')['params']);
     },
     'request: detecção do base path (subpasta /teia)' => function (): void {
         T::same('', Request::detectBasePath('/index.php'));
         T::same('/teia', Request::detectBasePath('/teia/public/index.php'));
         T::same('/teia', Request::detectBasePath('/teia/index.php'));
         T::same('/', Request::stripBasePath('/teia', '/teia'));
-        T::same('/admin', Request::stripBasePath('/teia/admin', '/teia'));
-        T::same('/admin', Request::stripBasePath('/teia/public/admin', '/teia'));
+        T::same('/x', Request::stripBasePath('/teia/x', '/teia'));
+        T::same('/x', Request::stripBasePath('/teia/public/x', '/teia'));
         T::same('/teiax', Request::stripBasePath('/teiax', '/teia'));
     },
-    'paths: dados dentro do document root são detectados' => function (): void {
-        $root = tmpdir();
-        mkdir("$root/www/teia/public", 0777, true);
-        T::true(Paths::isInside("$root/www/teia/dados", "$root/www"));
-        T::false(Paths::isInside("$root/dados", "$root/www"));
-        T::false(Paths::isInside("$root/www2", "$root/www"), 'prefixo não é contenção');
+    'e(): escapa aspas simples, duplas e tags' => function (): void {
+        T::same('&lt;script&gt;alert(&apos;x&apos;)&lt;/script&gt; &quot;a&quot; &amp;', e("<script>alert('x')</script> \"a\" &"));
+        T::same('', e(['array']));
     },
-    'paths: projeto em www/teia usa dados fora do document root' => function (): void {
-        $root = tmpdir();
-        mkdir("$root/www/teia", 0777, true);
-        $prev = getenv('TEIA_DATA_DIR');
-        putenv('TEIA_DATA_DIR');
-        try {
-            $dir = Paths::resolveDataDir("$root/www/teia", "$root/www");
-            T::same(Paths::normalize("$root/teia-ade-sampa-data"), Paths::normalize($dir));
-            $dir = Paths::resolveDataDir("$root/apps/teia", "$root/www");
-            T::same(Paths::normalize("$root/apps/teia-ade-sampa-data"), Paths::normalize($dir));
-        } finally {
-            if ($prev !== false) {
-                putenv('TEIA_DATA_DIR=' . $prev);
-            }
+    'URLs: só http, https, mailto, tel e âncoras' => function (): void {
+        foreach (['https://app.adesampa.com.br/welcome', 'http://exemplo.com', 'mailto:contato@adesampa.com.br', 'tel:+551130000000', '#mapa'] as $ok) {
+            T::true(UrlValidator::isAllowed($ok), $ok);
+        }
+        foreach (['javascript:alert(1)', 'JaVaScRiPt:alert(1)', ' javascript:alert(1)', "java\tscript:alert(1)", 'data:text/html,<b>', 'vbscript:x',
+                  'file:///etc/passwd', '//evil.com', 'https://user:pass@evil.com', 'https://', '#', '#1abc', 'mailto:naoemail', 'ftp://x.com'] as $bad) {
+            T::false(UrlValidator::isAllowed($bad), "deveria recusar: $bad");
         }
     },
-    'banco: foreign_keys ativo e transações aninhadas com savepoint' => function (): void {
-        $db = new Database(tmpdir() . '/t.sqlite');
-        T::same(1, (int) $db->fetchValue('PRAGMA foreign_keys'));
-        $db->execute('CREATE TABLE x (v INTEGER)');
-        $db->transaction(function (Database $db): void {
-            $db->execute('INSERT INTO x VALUES (1)');
-            try {
-                $db->transaction(function (Database $db): void {
-                    $db->execute('INSERT INTO x VALUES (2)');
-                    T::same(2, $db->transactionDepth());
-                    throw new RuntimeException('falha interna');
-                });
-            } catch (RuntimeException) {
-            }
-            $db->execute('INSERT INTO x VALUES (3)');
-        });
-        T::same([1, 3], array_map('intval', array_column($db->fetchAll('SELECT v FROM x ORDER BY v'), 'v')));
-        T::same(0, $db->transactionDepth());
+    'mapa personalizado: só incorporação do Google Maps via https' => function (): void {
+        T::true(UrlValidator::isGoogleMapsEmbed('https://www.google.com/maps/d/embed?mid=abc'));
+        T::false(UrlValidator::isGoogleMapsEmbed('http://www.google.com/maps/d/embed?mid=abc'));
+        T::false(UrlValidator::isGoogleMapsEmbed('https://www.google.com.evil.com/maps'));
+        T::false(UrlValidator::isGoogleMapsEmbed('https://www.google.com/search?q=x'));
+        T::false(UrlValidator::isGoogleMapsEmbed(''));
     },
-    'banco: erro na transação externa desfaz tudo' => function (): void {
-        $db = new Database(tmpdir() . '/t.sqlite');
-        $db->execute('CREATE TABLE x (v INTEGER)');
-        T::throws(RuntimeException::class, fn () => $db->transaction(function (Database $db): void {
-            $db->execute('INSERT INTO x VALUES (1)');
-            throw new RuntimeException('x');
-        }));
-        T::same(0, (int) $db->fetchValue('SELECT COUNT(*) FROM x'));
+    'render: link vazio ou perigoso fica sem href; externo ganha rel=noopener' => function (): void {
+        $h = new Render(TEIA_ROOT . '/public/assets');
+        T::same(' data-link-pendente="true"', $h->href(''));
+        T::same(' data-link-pendente="true"', $h->href('javascript:alert(1)'));
+        T::same(' href="#mapa"', $h->href('#mapa'));
+        T::same(' href="https://a.com/?x=1&amp;y=&quot;2&quot;" rel="noopener noreferrer"', $h->href('https://a.com/?x=1&y="2"'));
     },
-    'migrações: aplicam em ordem, gravam user_version e chamam backup antes' => function (): void {
-        $dir = tmpdir();
-        mkdir("$dir/m");
-        file_put_contents("$dir/m/001_a.sql", 'CREATE TABLE a (id INTEGER);');
-        $db = new Database("$dir/t.sqlite");
-        $mig = new Migrator($db, "$dir/m");
-        $called = false;
-        T::same([1], $mig->migrate(function () use (&$called): void { $called = true; }));
-        T::false($called, 'banco novo não precisa de backup');
-        file_put_contents("$dir/m/002_b.sql", 'CREATE TABLE b (id INTEGER);');
-        T::same([2], $mig->migrate(function (int $from, int $to) use (&$called): void { $called = [$from, $to]; }));
-        T::same([1, 2], $called);
-        T::same(2, $db->userVersion());
-        T::same([], $mig->migrate());
+    'render: parágrafos sempre escapados' => function (): void {
+        $h = new Render(TEIA_ROOT . '/public/assets');
+        T::same("<p>a &lt;b&gt;<br>\nc</p>\n<p>d</p>", $h->paragraphs("a <b>\nc\n\nd"));
+        T::same('', $h->paragraphs("  \n "));
     },
-    'migração real 001 cria as tabelas esperadas' => function (): void {
-        $db = new Database(tmpdir() . '/t.sqlite');
-        (new Migrator($db, TEIA_ROOT . '/app/migrations'))->migrate();
-        $tables = array_column($db->fetchAll("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"), 'name');
-        T::same(['audit_log', 'media', 'page_permissions', 'page_revisions', 'pages', 'rate_limits', 'settings', 'users'], $tables);
+    'render: imagem com WebP + fallback; nome com caminho é ignorado' => function (): void {
+        $h = new Render(TEIA_ROOT . '/public/assets');
+        $html = $h->picture('foto-coworking', 'Foto "x"');
+        T::contains('type="image/webp"', $html);
+        T::contains('foto-coworking.jpg', $html);
+        T::contains('alt="Foto &quot;x&quot;"', $html);
+        T::same('', $h->picture('../app/bootstrap', 'x'));
+        T::same('', $h->picture('nao-existe', 'x'));
+    },
+    'render: PDF só se o arquivo existir (ou URL https)' => function (): void {
+        $h = new Render(TEIA_ROOT . '/public/assets');
+        T::same(null, $h->fileUrl(''));
+        T::same(null, $h->fileUrl('inexistente.pdf'));
+        T::same(null, $h->fileUrl('../../app/config/app.php'));
+        T::same(null, $h->fileUrl('http://inseguro.com/a.pdf'));
+        T::same('https://exemplo.com/manual.pdf', $h->fileUrl('https://exemplo.com/manual.pdf'));
+    },
+    'conteúdo: textos exatos do Figma e nenhum Lorem ipsum' => function (): void {
+        $app = new App();
+        $teia = $app->content('teia');
+        T::same('Teia', $teia['banner']['titulo']);
+        T::same('Espaços públicos de trabalho', $teia['banner']['tag']);
+        T::same(['Coworkings públicos', 'Estúdios de podcast', 'Estúdios de fotografia', 'Estúdios de música'], array_column($teia['espacos'], 'titulo'));
+        T::same('https://app.adesampa.com.br/welcome', $teia['geral']['link_agendamento']);
+        $layout = $app->content('layout');
+        T::same(['Home', 'Sobre', 'Programas', 'Comunicação', 'Transparência'], array_column($layout['cabecalho']['menu'], 'rotulo'));
+        T::same('Atendimenro ao empreendedor', $layout['rodape']['colunas']['col_empreende']['links'][0]['rotulo'], 'grafia exata do Figma');
+        foreach (['teia', 'layout', 'erro-404'] as $name) {
+            T::notContains('lorem', mb_strtolower((string) json_encode($app->content($name))));
+        }
+    },
+    'conteúdo: nome de arquivo com caminho é recusado' => function (): void {
+        T::throws(InvalidArgumentException::class, fn () => (new App())->content('../config/app'));
     },
 ];

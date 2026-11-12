@@ -22,11 +22,6 @@ class HttpException extends \RuntimeException
         return new self(404, 'Página não encontrada.');
     }
 
-    public static function forbidden(string $message = 'Acesso negado.'): self
-    {
-        return new self(403, $message);
-    }
-
     public static function methodNotAllowed(array $allowed): self
     {
         return new self(405, 'Método não permitido.', ['Allow' => implode(', ', $allowed)]);

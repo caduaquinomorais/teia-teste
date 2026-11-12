@@ -18,7 +18,6 @@ if (PHP_SAPI === 'cli-server') {
 
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
-ini_set('expose_php', '0');
 if (function_exists('header_remove')) {
     header_remove('X-Powered-By');
 }
@@ -33,7 +32,6 @@ set_error_handler(static function (int $severity, string $message, string $file,
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
-$paths = new Teia\Core\Paths(TEIA_ROOT);
-$app = new Teia\Core\App($paths);
+$app = new Teia\Core\App();
 $request = Teia\Http\Request::fromGlobals($app->config->get('base_path'));
 $app->handle($request)->send();

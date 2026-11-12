@@ -1,0 +1,53 @@
+{
+  "_fonte": "Figma r1NdYceMw9ocdyDDrVQUGW, frame Teia 212:2903 (1440 px). Posições de elementos RELATIVAS ao topo da seção (evita deslocamento em cascata). Valores derivados de get_metadata/get_design_context em 12/11/2026.",
+  "largura": 1440,
+  "secoes": [
+    { "nome": "Cabeçalho", "seletor": ".site-header", "y": 0, "altura": 69, "fundo": "#FFFFFF" },
+    { "nome": "Submenu TEIA", "seletor": ".submenu", "y": 69, "altura": 40, "fundo": "#E3E6E9" },
+    { "nome": "Banner", "seletor": ".hero", "y": 109, "altura": 397, "fundo": "#14171F" },
+    { "nome": "Coworkings públicos", "seletor": "#coworking", "y": 506, "altura": 546, "fundo": "#FFFFFF" },
+    { "nome": "Estúdios de podcast", "seletor": "#podcast", "y": 1052, "altura": 548, "fundo": "#E3E6E9" },
+    { "nome": "Estúdios de fotografia", "seletor": "#fotografia", "y": 1600, "altura": 546, "fundo": "#FFFFFF" },
+    { "nome": "Estúdios de música", "seletor": "#musica", "y": 2146, "altura": 548, "fundo": "#E3E6E9" },
+    { "nome": "Mapa", "seletor": "#mapa", "y": 2694, "altura": 498, "fundo": "#141720" },
+    { "nome": "Dúvidas frequentes", "seletor": "#duvidas", "y": 3192, "altura": 811.5, "fundo": "#E3E6E9" },
+    { "nome": "Normas de uso", "seletor": "#normas", "y": 4003.5, "altura": 706, "fundo": "#FFFFFF" },
+    { "nome": "Rodapé", "seletor": ".site-footer", "y": 4709.5, "altura": 679, "fundo": "#001B4D" }
+  ],
+  "elementos": [
+    { "nome": "Banner — título", "secao": ".hero", "seletor": ".hero__title", "x": 165, "y": 173, "w": null, "h": 61 },
+    { "nome": "Banner — etiqueta", "secao": ".hero", "seletor": ".hero .tag", "x": 165, "y": 135, "w": null, "h": 22 },
+    { "nome": "Banner — pílula de logos", "secao": ".hero", "seletor": ".hero__logos", "x": 884, "y": 239.75, "w": 391, "h": 85.25 },
+    { "nome": "Coworking — título", "secao": "#coworking", "seletor": "#coworking h2", "x": 165, "y": 102, "w": 508, "h": 43 },
+    { "nome": "Coworking — botão mapa", "secao": "#coworking", "seletor": "#coworking .btn--secondary", "x": 165, "y": 293, "w": 166, "h": 44 },
+    { "nome": "Coworking — botão agendamento", "secao": "#coworking", "seletor": "#coworking .btn--primary", "x": 347, "y": 293, "w": 226, "h": 44 },
+    { "nome": "Coworking — foto", "secao": "#coworking", "seletor": "#coworking .gallery__frame", "x": 732, "y": 64, "w": 543, "h": 392 },
+    { "nome": "Podcast — título", "secao": "#podcast", "seletor": "#podcast h2", "x": 767, "y": 103, "w": 508, "h": 43 },
+    { "nome": "Podcast — botão mapa", "secao": "#podcast", "seletor": "#podcast .btn--secondary", "x": 767, "y": 269, "w": 166, "h": 44 },
+    { "nome": "Podcast — botão agendamento", "secao": "#podcast", "seletor": "#podcast .btn--primary", "x": 949, "y": 269, "w": 226, "h": 44 },
+    { "nome": "Podcast — foto", "secao": "#podcast", "seletor": "#podcast .gallery__frame", "x": 165, "y": 65, "w": 543, "h": 392 },
+    { "nome": "Fotografia — título", "secao": "#fotografia", "seletor": "#fotografia h2", "x": 165, "y": 102, "w": 508, "h": 43 },
+    { "nome": "Fotografia — botão mapa", "secao": "#fotografia", "seletor": "#fotografia .btn--secondary", "x": 165, "y": 293, "w": 166, "h": 44 },
+    { "nome": "Fotografia — foto", "secao": "#fotografia", "seletor": "#fotografia .gallery__frame", "x": 732, "y": 64, "w": 543, "h": 392 },
+    { "nome": "Música — título", "secao": "#musica", "seletor": "#musica h2", "x": 767, "y": 103, "w": 508, "h": 43 },
+    { "nome": "Música — botão mapa", "secao": "#musica", "seletor": "#musica .btn--secondary", "x": 767, "y": 319, "w": 166, "h": 44 },
+    { "nome": "Música — foto", "secao": "#musica", "seletor": "#musica .gallery__frame", "x": 165, "y": 65, "w": 543, "h": 392 },
+    { "nome": "Mapa — título", "secao": "#mapa", "seletor": "#mapa h2", "x": 165, "y": 107, "w": 410, "h": 84 },
+    { "nome": "Mapa — quadro do mapa", "secao": "#mapa", "seletor": "#mapa .map-card", "x": 637, "y": 72, "w": 638, "h": 354 },
+    { "nome": "Dúvidas — título", "secao": "#duvidas", "seletor": "#duvidas h2", "x": 165, "y": 64, "w": 1110, "h": 43 },
+    { "nome": "Dúvidas — 1º item (aberto)", "secao": "#duvidas", "seletor": "#duvidas .faq__item", "x": 165, "y": 181.5, "w": 1110, "h": 212 },
+    { "nome": "Normas — caixa escura", "secao": "#normas", "seletor": ".rules__box", "x": 165, "y": 64, "w": 1110, "h": 578 },
+    { "nome": "Normas — título", "secao": "#normas", "seletor": ".rules__title", "x": 213, "y": 112, "w": 1014, "h": 51 },
+    { "nome": "Normas — cards", "secao": "#normas", "seletor": ".rules__cards", "x": 420, "y": 263, "w": 600, "h": 315 }
+  ],
+  "tipografia": [
+    { "nome": "Display (título do banner)", "seletor": ".hero__title", "tamanho": 61, "peso": 600 },
+    { "nome": "Header 2", "seletor": "#coworking h2", "tamanho": 39, "peso": 600 },
+    { "nome": "Body 1", "seletor": "#coworking .body1", "tamanho": 20, "peso": 400 },
+    { "nome": "Botão", "seletor": "#coworking .btn--primary", "tamanho": 16, "peso": 600 },
+    { "nome": "Navegação", "seletor": ".site-header__link", "tamanho": 14, "peso": 600 },
+    { "nome": "Tag", "seletor": "#coworking .tag", "tamanho": 13, "peso": 700 },
+    { "nome": "Header 5", "seletor": ".doc-card .h5", "tamanho": 20, "peso": 700 },
+    { "nome": "Caption 1", "seletor": ".site-footer__text", "tamanho": 12, "peso": 400 }
+  ]
+}

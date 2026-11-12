@@ -1,0 +1,8 @@
+# Finais de linha LF no repositório (scripts .sh precisam de LF no servidor Linux).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.woff2 binary
+*.zip binary
+*.sqlite binary

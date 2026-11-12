@@ -1,71 +1,112 @@
 # Decisões de design — TEIA | ADE SAMPA
 
-Este documento registra as decisões tomadas onde o Figma não tem especificação. Status:
-**Proposta** (aguarda aprovação, pois afeta escopo ou conteúdo institucional) · **Adotada** (decisão técnica de baixo risco).
+Decisões tomadas onde o Figma não tem especificação, ou onde foi preciso ajustar o design por acessibilidade.
+
+**Status:**
+
+- **Aprovada:** confirmada pelo responsável em 12/11/2026.
+- **Adotada:** decisão técnica de baixo risco.
+- **Ajuste de acessibilidade:** desvio intencional do Figma para cumprir o WCAG AA.
 
 ---
 
-## D-01 — Cabeçalho adaptado ao TEIA · **Proposta** (ref. P-06)
+## D-01 — Cabeçalho institucional idêntico ao Figma · **Aprovada**
 
-O `menu header` do Figma é o cabeçalho institucional da ADE SAMPA, com links para Home, Sobre, Programas, Comunicação e Transparência.
-Proposta:
-- Manter o visual (fundo branco, altura 68px, logo ADE SAMPA à esquerda, botão azul "Agendamentos" à direita).
-- **Remover** os links Home, Sobre, Programas, Comunicação e Transparência.
-- Logo ADE SAMPA sem link (ou levando ao topo da página do TEIA).
-- O submenu TEIA (Coworking, Podcast, Fotografia, Música, Mapa de unidades, Dúvidas, Normas de uso) vira a navegação principal, com âncoras para as seções.
+**Decisão do responsável:** o site do Teia ficará em `www.<domínio>/teia`, e os outros projetos em outros domínios ou subdomínios. Por isso o cabeçalho e o rodapé ficam **iguais ao Figma**.
 
-## D-02 — Rodapé adaptado ao TEIA · **Proposta** (ref. P-07)
+- Os links institucionais (Home, Sobre, Programas, Comunicação, Transparência e o logo) ficam **vazios** e marcados no código como `TODO-LINK`.
+- Esses links são editáveis no painel em *Cabeçalho e rodapé*.
+- Link vazio: o item aparece, mas não navega (`<a>` sem `href`, com `data-link-pendente`).
+- "Programas" fica destacado como seção atual (sublinhado azul), como no Figma.
+- O botão "Agendamentos" leva a `https://app.adesampa.com.br/welcome`.
 
-Proposta:
-- Manter: fundo `#001B4D`, logo ADE SAMPA, texto institucional, redes sociais, links legais, razão social/CNPJ/endereço/copyright e logos ADE SAMPA + Prefeitura.
-- **Remover** as 8 colunas de links para outras áreas e programas (ADE SAMPA, Sampa Empreende, Sampa Tech, Sampa Games, Sampa Verde, Sampa Criativa, Outros programas, Comunicação).
-- Com isso, as cores de outros programas (Tech, Games, Verde, Criativa) deixam de ser usadas.
+## D-02 — Rodapé institucional idêntico ao Figma · **Aprovada**
 
-## D-03 — Breadcrumb · **Proposta** (ref. P-08)
+- Mantém as 8 colunas, as redes sociais, os links legais, o CNPJ, o endereço e os logos, com os textos exatos do Figma, inclusive a grafia "Atendimen**r**o" (P-18).
+- Todos os links começam vazios (`TODO-LINK`).
+- As cores das barras de cada coluna são identidade visual: ficam fixas no template e o CMS não as altera.
+- Redes sociais sem link aparecem com opacidade de 60% (indicação visual de inativas).
 
-Manter o texto "Início / Programas / Teia" como está no Figma, **sem links** em "Início" e "Programas", marcado como `nav aria-label="Trilha"`, com "Teia" em `aria-current="page"`.
+## D-03 — Breadcrumb · **Aprovada**
+
+O texto "Início / Programas / Teia" é mantido como no Figma. "Início" e "Programas" têm links editáveis, inicialmente vazios (`TODO-LINK`). O item atual usa `aria-current="page"`.
 
 ## D-04 — Página única com âncoras · **Adotada**
 
-O Figma tem uma única página do TEIA. O site será uma landing page com âncoras: `#coworking`, `#podcast`, `#fotografia`, `#musica`, `#mapa`, `#duvidas`, `#normas`. O botão "Mapa dos Teias" leva a `#mapa`. A rolagem é suave, com `scroll-margin-top` para compensar o cabeçalho fixo (se adotado) e respeitando `prefers-reduced-motion`.
+- Âncoras: `#coworking`, `#podcast`, `#fotografia`, `#musica`, `#mapa`, `#duvidas` e `#normas`.
+- O botão "Mapa dos Teias" leva a `#mapa`.
+- A rolagem é suave, respeitando `prefers-reduced-motion`, e o foco vai para a seção (acessibilidade).
+- O identificador de cada espaço é editável no CMS, com validação.
 
-## D-05 — Seção do mapa · **Proposta** (ref. P-04)
+## D-05 — Mapa com Google Maps · **Aprovada**
 
-O Figma mostra uma imagem estática de mapa com os dados de uma única unidade. Opções:
-- **(A, recomendada)** Mostrar a imagem do Figma, editável no CMS, e uma **lista de unidades** editável (nome, zona, classificação, status, endereço com link "Ver no mapa" para o Google Maps). Não usa script de terceiros, fica compatível com a CSP e não exige consentimento de cookies.
-- (B) Só a imagem estática do Figma, editável no CMS. Mais fiel ao design, mas mostra uma única unidade.
-- (C) Mapa interativo (Google Maps/OpenStreetMap). Exige script de terceiros, relaxar a CSP, análise de LGPD e possivelmente chave de API paga. **Fora da stack fechada** ("sem dependências JS via CDN"), por isso não é recomendada.
+**Decisão do responsável:** a seção de mapa terá um Google Maps. A listagem de endereços salvos será alimentada depois.
 
-## D-06 — Carrossel de fotos · **Adotada** (ref. P-05)
+- O quadro de 638 × 354 px do Figma tem, à esquerda, um **painel de unidade** em HTML que reproduz o painel da imagem do Figma (cabeçalho `#6C6C6C` e corpo `#F5F5F5`). À direita fica o **Google Maps embutido** (iframe sem chave de API) do endereço da unidade.
+- **Lista de unidades editável** no CMS: nome, zona, classificação, situação e endereço. Com mais de uma unidade, aparece um seletor que troca o painel e o mapa.
+- **Mapa personalizado (opcional):** se a equipe criar um mapa no Google My Maps com todas as unidades, basta colar o link de incorporação. Nesse caso o iframe ocupa o quadro inteiro.
+- CSP: `frame-src` liberado só para `www.google.com` e `maps.google.com`, e só na página do mapa.
+- Os ícones de "voltar" e "rotas" da imagem do Figma **não** foram recriados: eram parte da interface do Google, e não assets do projeto.
 
-Cada espaço tem uma **lista de fotos** no CMS. Com 1 foto, os pontos não aparecem. Com 2 ou mais, o carrossel funciona sem dependências: pontos clicáveis (`button` com `aria-label="Foto N de M"`), suporte a teclado e swipe, e sem rotação automática (acessibilidade). Pontos de 8px; o ativo é `#14171F` e o inativo `#A3AAB6`, conforme os SVGs exportados. A área de toque dos pontos chega a 44px com padding invisível.
+## D-06 — Carrossel de fotos · **Adotada**
+
+- Cada espaço tem uma lista de fotos no CMS.
+- Os pontinhos só aparecem com **2 fotos ou mais**. A linha de pontos mantém os 8 px de altura mesmo vazia, preservando a geometria do Figma.
+- Funciona com pontos clicáveis (`aria-pressed`), setas do teclado e gesto de arrastar. Não há rotação automática, por acessibilidade.
+- Pontos: 8 px; ativo `#14171F` e inativo `#A3AAB6` (dos SVGs do Figma). Abaixo de 1024 px, a área de toque é de 44 × 44 px.
 
 ## D-07 — FAQ em acordeão · **Adotada**
 
-Implementado com `<details>`/`<summary>`, que funciona sem JavaScript. Fechado mostra o ícone CaretCircleDown; aberto mostra o mesmo ícone girado 180° (como no item 1 do Figma). Todos começam fechados.
+- Usa `<details>/<summary>`, que funciona sem JavaScript, com o ícone CaretCircleDown girando 180° quando aberto.
+- Todos começam fechados. No Figma o 1º aparece aberto, como ilustração do estado.
+- A numeração "1., 2., …" é automática.
 
 ## D-08 — Estados de interação · **Adotada**
 
-- Botões TEIA: usar os estados do componente `241:4030` (ver `DESIGN_TOKENS.md` §8).
-- Botão "Agendamentos" do cabeçalho: estados "navegação (hover)" e "navegação (pressed)" do componente `Botão (Empreende)`, a extrair na F2.
-- Links do submenu e do rodapé: sublinhado no hover (sem especificação no Figma).
-- **Foco visível:** contorno de 2px `#1158D4` com `outline-offset: 2px` em todos os elementos interativos; sobre fundo escuro, contorno branco.
+- Botões do Teia: estados do componente `241:4030`.
+  - Primário: hover `#A3AAB6` com texto `#14171F`.
+  - Secundário: hover com borda de 2 px, feita com sombra interna para não deslocar o layout.
+- Botão "Agendamentos": hover `#042F80`.
+- Links do menu: hover azul `#1158D4`. Submenu e rodapé: sublinhado.
+- **Foco visível:** contorno de 2 px `#1158D4` com afastamento de 2 px; sobre fundos escuros, contorno branco.
 
-## D-09 — Responsividade · **Adotada** (ref. P-15)
+## D-09 — Responsividade · **Adotada**
+
+O Figma só tem o desktop de 1440 px.
 
 | Largura | Comportamento |
 |---|---|
-| ≥ 1280px | Fiel ao Figma (gutter de 165px a partir de 1440px; container de 1110px centralizado) |
-| 1024–1279px | Gutter fluido `clamp(24px, 8vw, 165px)`; colunas mantidas com larguras proporcionais |
-| 768–1023px | Seções dos espaços empilhadas (foto acima do texto, sempre na mesma ordem); mapa abaixo do texto; cards de PDF em 2 colunas |
-| < 768px | Uma coluna; gutter de 16–24px; Display 61→40px, H2 39→28px, Body 1 20→18px (mínimo de 12px em todo o site); botões em largura total; cards de PDF em 1 coluna; rodapé empilhado |
+| ≥ 1280 px | Fiel ao Figma: conteúdo de 1110 px centralizado (165 px de margem em 1440) |
+| 1024–1279 px | Margens fluidas; colunas proporcionais; rodapé em 4 colunas |
+| 768–1023 px | **Menu "Menu"** com painel suspenso (fecha com Esc ou clique fora); submenu com rolagem horizontal própria; espaços empilhados (foto acima do texto); mapa abaixo do texto; rodapé em 3 colunas; alvos de toque de 44 px |
+| < 768 px | Uma coluna; margem de 16 px; Display 61→40 px, H2 39→28 px, Body 1 20→18 px; botões em largura total; mapa com painel acima e mapa abaixo; rodapé em 2 colunas (1 abaixo de 360 px) |
 
-Menu mobile (< 1024px): o submenu TEIA vira uma barra com rolagem horizontal, ou um botão "Menu" com painel. A escolha será feita na F2, documentada e validada nas larguras de teste. Alvos de toque de 44px ou mais.
+**Sem JavaScript:** o menu aparece expandido, porque a classe `no-js` é removida pelo script.
 
 ## D-10 — Página 404 · **Adotada**
 
-Usa o cabeçalho, o submenu e o rodapé, com uma seção no estilo do banner (fundo `#14171F`): título "Página não encontrada", texto curto e botão primário "Voltar ao início". Esse texto é funcional, não institucional, e fica editável no CMS.
+Usa o cabeçalho, o submenu e o rodapé, com uma seção no estilo do banner: etiqueta "Erro 404", título, texto e botão "Voltar ao início". Os textos são editáveis no CMS (página "erro-404").
 
-## D-11 — Fundo do banner e do mapa · **Adotada**
+## D-11 — Fundos do banner e do mapa · **Adotada**
 
-As formas decorativas do banner e do mapa são imagens raster exportadas do Figma. Serão servidas como `background-image` (WebP com fallback JPG) com `background-size: cover`. São decorativas, então ficam sem alt.
+As formas decorativas são imagens exportadas do Figma, servidas como `<picture>` (WebP + JPG) posicionado atrás do conteúdo, sem estilo inline (compatível com a CSP). O fundo do mapa fica com 70% de opacidade sobre `#141720`, como no Figma. A imagem do banner é editável no CMS.
+
+## D-12 — Contraste dos links do rodapé · **Ajuste de acessibilidade**
+
+O Figma usa `rgba(207,230,255,0.4)` sobre `#001B4D`, com contraste de **3,1:1**. Para texto de 12 px, o WCAG AA exige 4,5:1. A opacidade foi elevada para **0,6**, chegando a **5,4:1**. O token original continua documentado (`--empreende-n200-40`) e é usado na borda do cabeçalho.
+
+## D-13 — Rótulos do painel de unidade do mapa · **Ajuste de acessibilidade**
+
+Na imagem do Figma, os rótulos ("Unidade", "ZONA"…) aparecem em `#9E9E9E` sobre `#F5F5F5`, com contraste de **2,5:1**. A cor usada é **`#616161`**, com contraste de cerca de 5,7:1.
+
+## D-14 — Perguntas sem resposta não são publicadas · **Adotada**
+
+No Figma, a resposta 1 é *Lorem ipsum* e as demais não existem. Para não publicar texto provisório nem conteúdo inventado, **uma pergunta só aparece no site quando tem resposta** (P-01). Enquanto não houver respostas, a seção mostra só o título e o subtítulo.
+
+## D-15 — Botão "Baixar PDF" só com arquivo · **Adotada**
+
+Os cards de Normas aparecem sempre, mas o botão só aparece quando há um PDF enviado no CMS (P-02). O bloco de texto dos cards mantém a altura de 141 px do Figma, para que os cards tenham a mesma altura.
+
+## D-16 — Painel administrativo · **Adotada**
+
+O painel não existe no Figma. Ele usa a identidade do Teia (fonte Geist, `#14171F`, botões do componente Teia) com um layout utilitário: barra superior, cartões e formulários. Formulários longos têm a barra "Publicar alterações" fixa no rodapé da tela.

@@ -78,3 +78,5 @@ Publique o repositório numa pasta vazia, por exemplo `www/teia`, pelo **Git Web
 ## Links pendentes (TODO-LINK)
 
 O cabeçalho e o rodapé reproduzem o Figma institucional. Os links para as outras áreas da ADE SAMPA estão **vazios de propósito**, porque esses endereços ainda não existem. Eles aparecem no site sem levar a lugar nenhum. Procure por `TODO-LINK` em `app/content/` e preencha quando os endereços forem definidos.
+
+Teste de integracao KingHost - publicacao Git.

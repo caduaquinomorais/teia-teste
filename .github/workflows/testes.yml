@@ -155,7 +155,7 @@ jobs:
             if conteudo=$(nomes "$dir"); then
               relatorio+="$dir: $(umalinha "$conteudo")"$'\n'
               if echo "$conteudo" | grep -qx app && echo "$conteudo" | grep -qx public; then
-                anota notice "Pasta de destino: $dir"
+                anota notice "Pasta de destino: .$dir (relativa à pasta onde o FTP abre)"
                 echo "dir=$dir" >> "$GITHUB_OUTPUT"
                 exit 0
               fi
@@ -180,7 +180,8 @@ jobs:
           server: ${{ env.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ steps.destino.outputs.dir }}
+          # Relativo ("./teia/"): o FTP da KingHost abre dentro de www, que não é a raiz "/".
+          server-dir: .${{ steps.destino.outputs.dir }}
           protocol: ${{ env.FTP_PROTOCOL }}
           exclude: |
             **/.git*
@@ -204,7 +205,8 @@ jobs:
           server: ${{ env.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ steps.destino.outputs.dir }}
+          # Relativo ("./teia/"): o FTP da KingHost abre dentro de www, que não é a raiz "/".
+          server-dir: .${{ steps.destino.outputs.dir }}
           # FTPS (criptografado). Se a conexão falhar, crie a variável FTP_PROTOCOL = ftp.
           protocol: ${{ env.FTP_PROTOCOL }}
           # Envia só o que o site usa. Arquivos removidos do repositório também são

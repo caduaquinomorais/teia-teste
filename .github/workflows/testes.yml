@@ -147,6 +147,10 @@ jobs:
           candidatos="${FTP_DIR:-} /teia/ /www/teia/ /public_html/teia/ /"
           relatorio=""
           for dir in $candidatos; do
+            # Normaliza: "./www/teia" → "/www/teia/" (sem isso a URL vira "host./…" e o login falha,
+            # o que faz a KingHost bloquear o IP por alguns minutos).
+            dir="${dir#.}"
+            case "$dir" in /*) ;; *) dir="/$dir" ;; esac
             case "$dir" in */) ;; *) dir="$dir/" ;; esac
             if conteudo=$(nomes "$dir"); then
               relatorio+="$dir: $(umalinha "$conteudo")"$'\n'
@@ -163,7 +167,38 @@ jobs:
           $relatorio"
           exit 1
 
+      # A KingHost limita conexões seguidas do mesmo IP. Pausa antes do envio e, se a conexão
+      # falhar, uma segunda tentativa depois de 1 minuto.
+      - name: Pausa antes do envio
+        run: sleep 20
+
       - name: Enviar para a KingHost por FTP
+        id: envio1
+        continue-on-error: true
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ steps.destino.outputs.dir }}
+          protocol: ${{ env.FTP_PROTOCOL }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            bin/**
+            docs/**
+            tests/**
+            *.md
+            .gitattributes
+            .gitignore
+
+      - name: Aguardar antes da segunda tentativa
+        if: steps.envio1.outcome == 'failure'
+        run: sleep 60
+
+      - name: Enviar para a KingHost por FTP (2ª tentativa)
+        if: steps.envio1.outcome == 'failure'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ env.FTP_SERVER }}

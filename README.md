@@ -58,7 +58,7 @@ O relatório visual é gerado em `tests/visual/reports/relatorio.html`. Veja [do
 
 ## 6. Publicar na KingHost
 
-Publique o repositório numa pasta vazia, por exemplo `www/teia`, pelo **Git Webhook** do painel da KingHost. O `.htaccess` da raiz encaminha tudo para `public/` e bloqueia o código-fonte. Não há instalação nem dados no servidor. Passo a passo em [docs/DEPLOY.md](docs/DEPLOY.md).
+A publicação é automática: depois do merge de um Pull Request no `main`, o GitHub Actions roda os testes e envia o site por **FTPS** para `www/teia` na KingHost, conferindo em seguida se https://oranilom.com.br/teia/ responde. O `.htaccess` da raiz encaminha tudo para `public/` e bloqueia o código-fonte. Não há instalação nem dados no servidor. Configuração, funcionamento e diagnóstico em [docs/DEPLOY.md](docs/DEPLOY.md).
 
 O `main` é o branch de produção: toda mudança entra por Pull Request e só pode ser mesclada se os testes automáticos (GitHub Actions) passarem.
 
@@ -72,7 +72,8 @@ O `main` é o branch de produção: toda mudança entra por Pull Request e só p
 | [docs/DECISOES_DE_DESIGN.md](docs/DECISOES_DE_DESIGN.md) | Decisões tomadas onde o Figma não tem especificação |
 | [docs/INVENTARIO_FIGMA.md](docs/INVENTARIO_FIGMA.md) | Frames, componentes, textos e assets do TEIA no Figma |
 | [docs/SEGURANCA.md](docs/SEGURANCA.md) | Controles de segurança |
-| [docs/DEPLOY.md](docs/DEPLOY.md) | Publicação na KingHost |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Publicação na KingHost: como funciona, configuração, rotina e diagnóstico |
+| [docs/PROMPT_DEPLOY_KINGHOST.md](docs/PROMPT_DEPLOY_KINGHOST.md) | Prompt para uma IA reproduzir este deploy (com as armadilhas da KingHost) |
 | [docs/MANUTENCAO.md](docs/MANUTENCAO.md) | Atualizações, imagens e logs |
 | [docs/TESTES.md](docs/TESTES.md) | Como testar e últimos resultados |
 | [docs/PENDENCIAS_DE_CONTEUDO.md](docs/PENDENCIAS_DE_CONTEUDO.md) | Conteúdos e decisões pendentes |

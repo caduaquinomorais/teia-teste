@@ -4,7 +4,7 @@
 
 1. Edite os arquivos (conteúdo: [CONTEUDO.md](CONTEUDO.md)).
 2. Rode `bin/php.sh tests/run.php` e, para mudanças visuais, `tests/visual/executar.sh`.
-3. Faça commit e `git push`. O Git Webhook da KingHost publica a alteração.
+3. Faça commit num branch, abra o Pull Request e faça o merge com os testes verdes. O GitHub Actions publica na KingHost (ver [DEPLOY.md](DEPLOY.md)).
 
 ## Backup
 

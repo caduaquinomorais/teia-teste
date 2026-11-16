@@ -66,7 +66,7 @@ Nas larguras 320, 360, 390, 414, 768, 1024, 1280 e 1440 px:
 
 | Item | Motivo |
 |---|---|
-| Servidor real da KingHost (Apache/PHP-FPM, `.htaccess`, Git Webhook) | Sem acesso ao servidor. Ver checklist em DEPLOY.md. |
+| Servidor real da KingHost (Apache/PHP-FPM, `.htaccess`) | Não roda nos testes automáticos. O deploy confere o site publicado a cada envio; a conferência completa de 16/11/2026 está em DEPLOY.md. |
 | Safari e Firefox | Só o Chrome headless estava disponível. |
 | Leitores de tela reais | Foram feitas verificações automáticas de estrutura, rótulos e foco. |
 | PHP 8.1 e 8.2 | Os testes rodaram em 8.3. O código evita recursos posteriores à 8.1. |

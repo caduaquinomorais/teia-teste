@@ -3,16 +3,17 @@
 # - Pull Request: roda os testes. Com a proteção de branch ativada, o PR só pode ser
 #   mesclado no main se os testes passarem.
 # - Push no main (merge de PR) ou execução manual (aba Actions → "Run workflow"):
-#   roda os testes e, se passarem, publica por FTP na KingHost (pasta www/teia).
+#   roda os testes e, se passarem, publica por FTPS na KingHost (pasta ./teia/ dentro de www)
+#   e confere se o site responde com o CSS. Detalhes e diagnóstico: docs/DEPLOY.md.
 #
-# Segredos necessários (Settings → Secrets and variables → Actions → New repository secret):
+# Segredos necessários (Settings → Secrets and variables → Actions → aba Secrets):
 #   FTP_USERNAME  usuário de FTP da KingHost
-#   FTP_PASSWORD  senha de FTP da KingHost
-# Variáveis opcionais (aba "Variables"):
+#   FTP_PASSWORD  senha de FTP da KingHost (NUNCA na aba Variables: lá fica visível)
+# Variáveis opcionais (aba "Variables"); normalmente não devem existir:
 #   FTP_SERVER    padrão web1160.kinghost.net (ftp.oranilom.com.br é apelido dele, mas o
 #                 certificado TLS da KingHost só vale para *.kinghost.net)
-#   FTP_DIR       pasta de destino no FTP; padrão /www/teia/ (precisa terminar com /)
-#   FTP_PROTOCOL  ftps (padrão) ou ftp
+#   FTP_DIR       padrão: descoberta automática (encontra ./teia/)
+#   FTP_PROTOCOL  ftps (padrão) ou ftp (sem criptografia; não usar)
 
 name: Testes
 

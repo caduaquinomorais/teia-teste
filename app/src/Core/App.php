@@ -44,6 +44,12 @@ final class App
         return $this->basePath;
     }
 
+    /** '/public' quando os assets precisam do caminho físico (ver Request::detectPublicPrefix). */
+    public function publicPrefix(): string
+    {
+        return $this->request?->publicPrefix ?? '';
+    }
+
     public function cspNonce(): string
     {
         return $this->nonce;

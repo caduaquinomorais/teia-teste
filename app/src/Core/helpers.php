@@ -17,12 +17,20 @@ function e(mixed $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_HTML5 | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-/** URL interna considerando o base path (ex.: /teia). */
+/**
+ * URL interna considerando o base path (ex.: /teia).
+ * Arquivos estáticos (/assets/…) recebem o prefixo /public quando o servidor não encaminha
+ * a requisição para public/ (ver Request::detectPublicPrefix e o index.php da raiz).
+ */
 function url(string $path = '/'): string
 {
-    $base = App::instance()?->basePath() ?? '';
+    $app = App::instance();
+    $base = $app?->basePath() ?? '';
     if ($path === '' || $path[0] !== '/') {
         $path = '/' . $path;
+    }
+    if (str_starts_with($path, '/assets/')) {
+        $base .= $app?->publicPrefix() ?? '';
     }
     return $base . $path;
 }

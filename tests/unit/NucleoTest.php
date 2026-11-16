@@ -39,6 +39,34 @@ return [
         T::same('/x', Request::stripBasePath('/teia/public/x', '/teia'));
         T::same('/teiax', Request::stripBasePath('/teiax', '/teia'));
     },
+    'request: assets em /public quando entra pelo index.php da raiz (.htaccess da raiz ignorado)' => function (): void {
+        // Reserva: Apache abre www/teia/index.php direto.
+        $raiz = Request::fromServer([
+            'SCRIPT_NAME' => '/teia/index.php',
+            'SCRIPT_FILENAME' => TEIA_ROOT . '/index.php',
+            'REQUEST_URI' => '/teia/',
+        ]);
+        T::same('/teia', $raiz->basePath);
+        T::same('/', $raiz->path);
+        T::same('/public', $raiz->publicPrefix);
+
+        // Normal: .htaccess da raiz encaminhou para public/index.php.
+        $normal = Request::fromServer([
+            'SCRIPT_NAME' => '/teia/public/index.php',
+            'SCRIPT_FILENAME' => TEIA_ROOT . '/public/index.php',
+            'REQUEST_URI' => '/teia/',
+        ]);
+        T::same('/teia', $normal->basePath);
+        T::same('', $normal->publicPrefix);
+
+        // url(): só /assets/ recebe o prefixo.
+        $app = new App();
+        @$app->handle($raiz); // @: no CLI os cabeçalhos já foram enviados; só interessa o estado do App.
+        T::same('/teia/public/assets/css/site.css', url('/assets/css/site.css'));
+        T::same('/teia/', url('/'));
+        @$app->handle($normal);
+        T::same('/teia/assets/css/site.css', url('/assets/css/site.css'));
+    },
     'e(): escapa aspas simples, duplas e tags' => function (): void {
         T::same('&lt;script&gt;alert(&apos;x&apos;)&lt;/script&gt; &quot;a&quot; &amp;', e("<script>alert('x')</script> \"a\" &"));
         T::same('', e(['array']));

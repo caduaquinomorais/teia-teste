@@ -25,6 +25,8 @@ branch de trabalho ──► Pull Request ──► testes ──► merge no ma
 
    Use os dados de FTP do painel da KingHost. Eles ficam criptografados e não aparecem nos logs nem para quem vê o repositório.
 
+   O servidor FTP da KingHost **não envia o certificado intermediário** da GlobalSign. O Windows completa a cadeia sozinho; o Linux do GitHub não, e recusa a conexão com `unable to get local issuer certificate`. O workflow baixa o intermediário do endereço oficial que consta no próprio certificado, valida a cadeia e segue com a verificação TLS ligada.
+
    O servidor já vem configurado: **`web1160.kinghost.net`**, com FTPS. `ftp.oranilom.com.br` é um apelido desse servidor, mas o certificado TLS da KingHost só vale para `*.kinghost.net`, então usar o apelido faria a conexão segura falhar. Se a KingHost mudar a conta de servidor, crie a variável `FTP_SERVER` com o novo nome (descubra com `nslookup ftp.oranilom.com.br`).
 2. **Pasta de destino:** o padrão é `/www/teia/`. Antes de enviar qualquer arquivo, o deploy confere se consegue abrir essa pasta. Se não conseguir, ele para e lista as pastas que existem na raiz do FTP. Para usar outro caminho, crie em *Variables* a variável `FTP_DIR`, terminando em `/`.
 3. **Desligar o webhook antigo:** no painel da KingHost, em *Git Webhook*, remova a integração. No GitHub, em *Settings → Webhooks*, apague o webhook da KingHost. Assim fica uma única forma de publicar.

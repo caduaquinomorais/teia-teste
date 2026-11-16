@@ -14,12 +14,17 @@ final class Request
         public readonly string $path,
         public readonly string $basePath,
         public readonly array $server,
+        public readonly string $publicPrefix = '',
     ) {
     }
 
     public static function fromGlobals(?string $configuredBasePath = null): self
     {
-        $server = $_SERVER;
+        return self::fromServer($_SERVER, $configuredBasePath);
+    }
+
+    public static function fromServer(array $server, ?string $configuredBasePath = null): self
+    {
         $script = (string) ($server['SCRIPT_NAME'] ?? '');
         // O servidor embutido do PHP preenche SCRIPT_NAME com o caminho pedido quando ele tem extensão
         // (ex.: /x.webp). Só o front controller (…/index.php) indica o base path real.
@@ -35,7 +40,19 @@ final class Request
             self::stripBasePath($path, $basePath),
             $basePath,
             $server,
+            self::detectPublicPrefix((string) ($server['SCRIPT_FILENAME'] ?? '')),
         );
+    }
+
+    /**
+     * '/public' quando a requisição entrou pelo index.php da RAIZ do repositório (reserva usada
+     * quando o servidor ignora o .htaccess da raiz e não encaminha nada para public/). Nesse caso
+     * os arquivos estáticos só existem em <base>/public/assets. Nos demais casos, ''.
+     */
+    public static function detectPublicPrefix(string $scriptFilename): string
+    {
+        $dir = $scriptFilename !== '' ? realpath(dirname($scriptFilename)) : false;
+        return $dir !== false && $dir === realpath(TEIA_ROOT) ? '/public' : '';
     }
 
     /**

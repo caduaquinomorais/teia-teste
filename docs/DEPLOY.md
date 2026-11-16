@@ -101,6 +101,17 @@ git push -u origin reverte/problema       # e abra o PR
 
 Não use `git push --force` no `main`: o histórico do servidor deixaria de bater com o do GitHub.
 
+## Se o `.htaccess` da raiz for ignorado (observado em oranilom.com.br/teia, 16/11/2026)
+
+Sintomas: `/teia/` dá **403 Forbidden**, `/teia/README.md` é servido e `/teia/public/` abre sem CSS. O `.htaccess` de `public/`, `app/`, `docs/` etc. funciona; só o da raiz de `/teia` não age.
+
+O projeto já contorna isso sozinho: o [index.php](../index.php) da raiz é aberto pelo Apache em `/teia/`, e o app passa a apontar CSS, fontes e imagens para `/teia/public/assets/…`. O site funciona por completo em `/teia/`. Limitações enquanto o `.htaccess` da raiz estiver inativo:
+
+- endereços inexistentes (`/teia/qualquer-coisa`) mostram o 404 da hospedagem, não o do Teia;
+- arquivos soltos na raiz (`README.md`) ficam acessíveis. Não há nada sensível neles, e `app/`, `bin/`, `docs/` e `tests/` continuam bloqueados pelos próprios `.htaccess`.
+
+Para resolver de vez: no Gerenciador de Arquivos/FTP da KingHost, confira se `www/teia/.htaccess` existe e tem o conteúdo do repositório; se existir, pergunte ao suporte por que ele não é aplicado (AllowOverride). Quando ele voltar a agir, nada precisa mudar no código.
+
 ## Se o servidor for Nginx (sem `.htaccess`)
 
 Os arquivos de `app/` encerram sem executar nada se forem chamados diretamente, mas as URLs não funcionam sem reescrita, e `.git/`, `docs/` e `tests/` ficariam acessíveis. Peça ao suporte da KingHost para:

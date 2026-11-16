@@ -1,6 +1,18 @@
-# Testes automáticos do TEIA.
-# Roda em todo Pull Request e em todo push no main. Com a proteção de branch ativada no
-# GitHub, um PR só pode ser mesclado no main (que a KingHost publica) se este workflow passar.
+# Testes e deploy do TEIA.
+#
+# - Pull Request: roda os testes. Com a proteção de branch ativada, o PR só pode ser
+#   mesclado no main se os testes passarem.
+# - Push no main (merge de PR) ou execução manual (aba Actions → "Run workflow"):
+#   roda os testes e, se passarem, publica por FTP na KingHost (pasta www/teia).
+#
+# Segredos necessários (Settings → Secrets and variables → Actions → New repository secret):
+#   FTP_USERNAME  usuário de FTP da KingHost
+#   FTP_PASSWORD  senha de FTP da KingHost
+# Variáveis opcionais (aba "Variables"):
+#   FTP_SERVER    padrão web1160.kinghost.net (ftp.oranilom.com.br é apelido dele, mas o
+#                 certificado TLS da KingHost só vale para *.kinghost.net)
+#   FTP_DIR       pasta de destino no FTP; padrão /www/teia/ (precisa terminar com /)
+#   FTP_PROTOCOL  ftps (padrão) ou ftp
 
 name: Testes
 
@@ -15,7 +27,8 @@ permissions:
 
 concurrency:
   group: testes-${{ github.ref }}
-  cancel-in-progress: true
+  # Em PR, um push novo cancela o anterior. No main, nunca interrompe um deploy pela metade.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   testes:
@@ -47,3 +60,83 @@ jobs:
 
       - name: Rodar os testes (unitários e HTTP)
         run: php tests/run.php
+
+  deploy:
+    name: Deploy KingHost (FTP)
+    needs: testes
+    # Só publica a partir do main, e nunca a partir de Pull Request.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: producao
+      url: https://oranilom.com.br/teia/
+    concurrency:
+      group: deploy-producao
+      cancel-in-progress: false
+
+    env:
+      FTP_SERVER: ${{ vars.FTP_SERVER || 'web1160.kinghost.net' }}
+      FTP_DIR: ${{ vars.FTP_DIR || '/www/teia/' }}
+      FTP_PROTOCOL: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Verificar acesso ao FTP e a pasta de destino
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -z "$FTP_USERNAME" ] || [ -z "$FTP_PASSWORD" ]; then
+            echo "::error::Cadastre os segredos FTP_USERNAME e FTP_PASSWORD em Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          case "$FTP_DIR" in */) ;; *) echo "::error::FTP_DIR precisa terminar com / (atual: $FTP_DIR)"; exit 1 ;; esac
+          umask 077
+          printf 'machine %s login %s password %s\n' "$FTP_SERVER" "$FTP_USERNAME" "$FTP_PASSWORD" > "$RUNNER_TEMP/netrc"
+          tls=(); [ "$FTP_PROTOCOL" = ftps ] && tls=(--ssl-reqd)
+          echo "Servidor: $FTP_SERVER ($FTP_PROTOCOL) · pasta: $FTP_DIR"
+          if ! lista=$(curl -sS "${tls[@]}" --netrc-file "$RUNNER_TEMP/netrc" --max-time 60 -l "ftp://$FTP_SERVER$FTP_DIR"); then
+            echo "::error::Não consegui abrir $FTP_DIR. Se o erro acima for de login (530), confira usuário e senha. Pastas na raiz do FTP:"
+            curl -sS "${tls[@]}" --netrc-file "$RUNNER_TEMP/netrc" --max-time 60 -l "ftp://$FTP_SERVER/" || true
+            exit 1
+          fi
+          echo "Conteúdo atual de $FTP_DIR:"; echo "$lista" | sed 's/^/  /'
+          rm -f "$RUNNER_TEMP/netrc"
+
+      - name: Enviar para a KingHost por FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ env.FTP_DIR }}
+          # FTPS (criptografado). Se a conexão falhar, crie a variável FTP_PROTOCOL = ftp.
+          protocol: ${{ env.FTP_PROTOCOL }}
+          # Envia só o que o site usa. Arquivos removidos do repositório também são
+          # removidos do servidor (apenas os que este deploy enviou).
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            bin/**
+            docs/**
+            tests/**
+            *.md
+            .gitattributes
+            .gitignore
+
+      - name: Conferir o site publicado
+        run: |
+          set -e
+          url='https://oranilom.com.br/teia/'
+          sleep 5
+          status=$(curl -s --retry 3 --retry-delay 5 -o pagina.html -w '%{http_code}' "$url")
+          echo "GET $url → $status"
+          test "$status" = 200
+          css=$(grep -oE 'href="[^"]*site\.css[^"]*"' pagina.html | head -1 | sed -E 's/href="([^"]+)"/\1/')
+          echo "CSS: $css"
+          test "$(curl -s -o /dev/null -w '%{http_code}' "https://oranilom.com.br$css")" = 200
+          echo "Site no ar com CSS."

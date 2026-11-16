@@ -4,7 +4,7 @@ O site não tem painel administrativo. Todo o conteúdo fica em arquivos PHP em 
 
 1. Edite o arquivo no seu editor (VS Code, por exemplo).
 2. Confira localmente com `bin/serve.sh` e `bin/php.sh tests/run.php`.
-3. Faça commit e `git push`. O Git Webhook da KingHost publica a alteração.
+3. Faça commit num branch, abra o Pull Request e faça o merge com os testes verdes. O GitHub Actions publica na KingHost (ver [DEPLOY.md](DEPLOY.md)).
 
 ## Regras gerais
 

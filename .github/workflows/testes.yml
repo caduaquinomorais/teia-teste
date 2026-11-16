@@ -77,7 +77,8 @@ jobs:
 
     env:
       FTP_SERVER: ${{ vars.FTP_SERVER || 'web1160.kinghost.net' }}
-      FTP_DIR: ${{ vars.FTP_DIR || '/www/teia/' }}
+      # Vazio = descobrir sozinho (ver "Localizar a pasta do site no FTP").
+      FTP_DIR: ${{ vars.FTP_DIR }}
       FTP_PROTOCOL: ${{ vars.FTP_PROTOCOL || 'ftps' }}
 
     steps:
@@ -108,27 +109,59 @@ jobs:
           echo "FTP_CA_BUNDLE=$RUNNER_TEMP/ftp-ca.pem" >> "$GITHUB_ENV"
           echo "NODE_EXTRA_CA_CERTS=$RUNNER_TEMP/ftp-intermediario.pem" >> "$GITHUB_ENV"
 
-      - name: Verificar acesso ao FTP e a pasta de destino
+      # Descobre a pasta do site no FTP. Sem a variável FTP_DIR, testa os caminhos usuais e só
+      # aceita uma pasta que já tenha app/ e public/ deste projeto, mesmo com FTP_DIR definida.
+      # O diagnóstico sai como anotação (::notice::/::error::), visível no resumo da execução.
+      - name: Localizar a pasta do site no FTP
+        id: destino
         env:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
+          set -uo pipefail
+          anota() { local m; m=$(printf '%s' "$2" | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g'); echo "::$1::$m"; }
           if [ -z "$FTP_USERNAME" ] || [ -z "$FTP_PASSWORD" ]; then
-            echo "::error::Cadastre os segredos FTP_USERNAME e FTP_PASSWORD em Settings → Secrets and variables → Actions."
+            anota error "Cadastre os segredos FTP_USERNAME e FTP_PASSWORD em Settings → Secrets and variables → Actions."
             exit 1
           fi
-          case "$FTP_DIR" in */) ;; *) echo "::error::FTP_DIR precisa terminar com / (atual: $FTP_DIR)"; exit 1 ;; esac
           umask 077
-          printf 'machine %s login %s password %s\n' "$FTP_SERVER" "$FTP_USERNAME" "$FTP_PASSWORD" > "$RUNNER_TEMP/netrc"
+          netrc="$RUNNER_TEMP/netrc"
+          printf 'machine %s login %s password %s\n' "$FTP_SERVER" "$FTP_USERNAME" "$FTP_PASSWORD" > "$netrc"
+          trap 'rm -f "$netrc"' EXIT
           tls=(); [ "$FTP_PROTOCOL" = ftps ] && tls=(--ssl-reqd --cacert "$FTP_CA_BUNDLE")
-          echo "Servidor: $FTP_SERVER ($FTP_PROTOCOL) · pasta: $FTP_DIR"
-          if ! lista=$(curl -sS "${tls[@]}" --netrc-file "$RUNNER_TEMP/netrc" --max-time 60 -l "ftp://$FTP_SERVER$FTP_DIR"); then
-            echo "::error::Não consegui abrir $FTP_DIR. Se o erro acima for de login (530), confira usuário e senha. Pastas na raiz do FTP:"
-            curl -sS "${tls[@]}" --netrc-file "$RUNNER_TEMP/netrc" --max-time 60 -l "ftp://$FTP_SERVER/" || true
+          # Lista nomes (LIST completo, que inclui pastas; NLST em alguns servidores omite pastas).
+          nomes() {
+            local out
+            out=$(curl -sS "${tls[@]}" --netrc-file "$netrc" --max-time 60 "ftp://$FTP_SERVER$1" 2>"$RUNNER_TEMP/ftp-erro") || return 1
+            printf '%s\n' "$out" | awk '{ for (i = 1; i <= 8; i++) $i = ""; sub(/^ +/, ""); print }' | grep -vxE '\.{1,2}|' || true
+          }
+          umalinha() { printf '%s' "$1" | tr '\n' ' '; }
+
+          if ! raiz=$(nomes /); then
+            anota error "Falha ao entrar no FTP $FTP_SERVER: $(cat "$RUNNER_TEMP/ftp-erro"). Erro 67/530 = usuário ou senha incorretos."
             exit 1
           fi
-          echo "Conteúdo atual de $FTP_DIR:"; echo "$lista" | sed 's/^/  /'
-          rm -f "$RUNNER_TEMP/netrc"
+          anota notice "Login OK em $FTP_SERVER. Raiz do FTP: $(umalinha "$raiz")"
+
+          # FTP_DIR (se existir) é testada primeiro; depois, os caminhos usuais.
+          candidatos="${FTP_DIR:-} /teia/ /www/teia/ /public_html/teia/ /"
+          relatorio=""
+          for dir in $candidatos; do
+            case "$dir" in */) ;; *) dir="$dir/" ;; esac
+            if conteudo=$(nomes "$dir"); then
+              relatorio+="$dir: $(umalinha "$conteudo")"$'\n'
+              if echo "$conteudo" | grep -qx app && echo "$conteudo" | grep -qx public; then
+                anota notice "Pasta de destino: $dir"
+                echo "dir=$dir" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            else
+              relatorio+="$dir: não abre ($(tr -d '\n' < "$RUNNER_TEMP/ftp-erro"))"$'\n'
+            fi
+          done
+          anota error "Nenhuma pasta com app/ e public/ do Teia encontrada (por segurança, o deploy só publica numa pasta que já tenha as duas). Corrija ou crie a variável FTP_DIR.
+          $relatorio"
+          exit 1
 
       - name: Enviar para a KingHost por FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -136,7 +169,7 @@ jobs:
           server: ${{ env.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ env.FTP_DIR }}
+          server-dir: ${{ steps.destino.outputs.dir }}
           # FTPS (criptografado). Se a conexão falhar, crie a variável FTP_PROTOCOL = ftp.
           protocol: ${{ env.FTP_PROTOCOL }}
           # Envia só o que o site usa. Arquivos removidos do repositório também são

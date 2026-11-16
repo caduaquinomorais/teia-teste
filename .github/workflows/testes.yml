@@ -1,0 +1,49 @@
+# Testes automáticos do TEIA.
+# Roda em todo Pull Request e em todo push no main. Com a proteção de branch ativada no
+# GitHub, um PR só pode ser mesclado no main (que a KingHost publica) se este workflow passar.
+
+name: Testes
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # 8.1 = versão mínima exigida; 8.3 = versão recomendada no servidor.
+        php: ['8.1', '8.3']
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Instalar o PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, curl, openssl
+          ini-values: zend.assertions=1, date.timezone=America/Sao_Paulo
+          coverage: none
+
+      - name: Verificar sintaxe de todos os arquivos PHP
+        run: |
+          find . -name '*.php' -not -path './.git/*' -print0 \
+            | xargs -0 -n1 php -l > /dev/null
+
+      - name: Rodar os testes (unitários e HTTP)
+        run: php tests/run.php

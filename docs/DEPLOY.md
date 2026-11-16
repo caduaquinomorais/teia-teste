@@ -4,6 +4,17 @@
 
 Sem o CMS, o site não precisa de banco, instalação, diretório de dados, extensões PHP extras nem tarefas agendadas.
 
+## Como funciona
+
+```
+branch de trabalho ──► Pull Request ──► GitHub Actions (testes) ──► merge no main ──► Git Webhook ──► KingHost
+                                          ✘ falhou: merge bloqueado
+```
+
+- **`main` = produção.** Tudo que entra no `main` é publicado pela KingHost.
+- **Ninguém faz push direto no `main`.** As mudanças entram por Pull Request.
+- **O PR só pode ser mesclado com os testes passando** (workflow [.github/workflows/testes.yml](../.github/workflows/testes.yml), PHP 8.1 e 8.3).
+
 ## O que foi verificado na documentação da KingHost
 
 | Item | Situação | Fonte |
@@ -18,43 +29,84 @@ Sem o CMS, o site não precisa de banco, instalação, diretório de dados, exte
 
 ## Estrutura no servidor
 
+**Opção A — subdomínio (preferível, se o painel permitir).** Ex.: `teia.adesampa.com.br`, com a raiz do subdomínio apontando para `.../teia/public`. Só a pasta `public/` fica acessível pela web; o `.htaccess` da raiz nem é usado.
+
+**Opção B — subpasta do site principal.**
+
 ```
 /home/<site>/www/
 ├── (outros sites/projetos da ADE SAMPA)
 └── teia/                  ← "Diretório para Publicação" do Git Webhook (vazio na 1ª vez)
+    ├── .git/              ← criado pelo Webhook; bloqueado pelo .htaccess
     ├── .htaccess          ← encaminha para public/ e bloqueia o código
     ├── public/
     └── app/ …
 ```
 
-O site fica em `https://<domínio>/teia/`. Se o painel permitir apontar um domínio ou subdomínio direto para `www/teia/public`, melhor ainda.
+O site fica em `https://<domínio>/teia/`.
 
-## Primeiro deploy
+## Configuração única no GitHub
 
-1. **Repositório:** suba o projeto para o GitHub, num repositório **privado**.
-2. **PHP:** no painel KingHost → *Configuração PHP*, escolha **8.1 ou superior** (de preferência 8.3).
-3. **Git Webhook:** no painel → *Git Webhook*:
-   - conecte o GitHub;
-   - escolha o repositório e o branch `main`;
-   - defina o **Diretório para Publicação** como `www/teia` (vazio).
-4. **HTTPS:** ative o Let's Encrypt em *Certificado SSL*. Depois, em `public/.htaccess`, descomente o bloco "Força HTTPS" e faça push.
-5. **Conferência:**
-   - [ ] `https://<domínio>/teia/` abre o site, com fontes e imagens.
-   - [ ] `https://<domínio>/teia/app/content/teia.php` responde **404**. Se mostrar código ou um erro do PHP, o `.htaccess` não está ativo (Nginx?): **pare e contate o suporte**.
-   - [ ] `https://<domínio>/teia/nao-existe` mostra a página 404 do Teia.
+1. **Repositório privado:** *Settings → General → Danger Zone → Change visibility* (se ainda for público).
+2. **Rodar o workflow uma vez:** depois do primeiro push com `.github/workflows/testes.yml`, confira em *Actions* que o "Testes" ficou verde. (O GitHub só oferece a verificação como obrigatória depois que ela rodou pelo menos uma vez.)
+3. **Proteger o `main`:** *Settings → Branches → Add branch ruleset* (ou *Add classic branch protection rule*):
+   - Branch: `main`.
+   - ✅ **Require a pull request before merging** (aprovações: 0 se você trabalha sozinho; 1 se houver revisor).
+   - ✅ **Require status checks to pass** → adicione **`PHP 8.1`** e **`PHP 8.3`**; marque *Require branches to be up to date*.
+   - ✅ **Block force pushes** e não permitir exclusão do branch.
+   - Em ruleset, deixe a *Bypass list* vazia (nem o administrador pula a regra).
+
+## Primeiro deploy na KingHost
+
+1. **PHP:** painel → *Configuração PHP* → **8.3** (mínimo 8.1).
+2. **Servidor web:** confirme que o site usa **Apache**. Se for Nginx, veja a seção no fim deste arquivo antes de continuar.
+3. **Pasta / subdomínio:** crie a pasta vazia `www/teia` (opção B) ou o subdomínio (opção A).
+4. **Git Webhook:** painel → *Git Webhook*:
+   - conecte a conta do GitHub e autorize o acesso ao repositório privado;
+   - repositório: este; branch: **`main`**;
+   - **Diretório para Publicação:** `www/teia` (vazio).
+   - Salve e faça a primeira publicação (botão do painel ou um merge no `main`).
+5. **HTTPS:** painel → *Certificado SSL* → ative o **Let's Encrypt** para o domínio/subdomínio. Quando `https://` abrir sem aviso, faça um PR descomentando o bloco "Força HTTPS" em `public/.htaccess`.
+6. **Conferência** (troque `<url>` por `https://<domínio>/teia` ou pelo subdomínio):
+   - [ ] `<url>/` abre o site, com fontes e imagens.
+   - [ ] `<url>/app/content/teia.php` responde **404**. Se mostrar código ou um erro do PHP, o `.htaccess` não está ativo (Nginx?): **tire o site do ar e contate o suporte**.
+   - [ ] `<url>/.git/config` responde **404**. Se baixar um arquivo, o código-fonte inteiro está exposto: **tire do ar**.
+   - [ ] `<url>/docs/DEPLOY.md` e `<url>/tests/run.php` respondem **404**.
+   - [ ] `<url>/nao-existe` mostra a página 404 do Teia.
+   - [ ] `http://…` redireciona para `https://…` (depois do passo 5).
    - [ ] Os botões "Faça seu agendamento" levam a `https://app.adesampa.com.br/welcome`.
    - [ ] O mapa carrega.
 
-## Atualizações
+## Atualizações (dia a dia)
 
-Edite os arquivos (ver CONTEUDO.md), faça commit e `git push` no branch configurado. O Git Webhook publica o código.
+```bash
+git switch main && git pull
+git switch -c ajuste/descricao-curta      # branch de trabalho
+# … edite (ver CONTEUDO.md) e rode os testes: bin/php.sh tests/run.php
+git add -A && git commit -m "conteudo: descreve a mudanca"
+git push -u origin ajuste/descricao-curta
+```
+
+No GitHub, abra o Pull Request para o `main`, espere os testes ficarem verdes e clique em **Merge**. O Git Webhook publica o `main` na KingHost. Confira o site em seguida.
+
+## Desfazer uma publicação (rollback)
+
+No GitHub, abra o PR que causou o problema e clique em **Revert**. Isso cria um novo PR que desfaz a mudança; mescle-o e o Webhook publica a versão anterior. Pelo terminal:
+
+```bash
+git switch -c reverte/problema origin/main
+git revert <hash-do-commit-de-merge> -m 1
+git push -u origin reverte/problema       # e abra o PR
+```
+
+Não use `git push --force` no `main`: o histórico do servidor deixaria de bater com o do GitHub.
 
 ## Se o servidor for Nginx (sem `.htaccess`)
 
-Os arquivos de `app/` encerram sem executar nada se forem chamados diretamente, mas as URLs não funcionam sem reescrita. Peça ao suporte da KingHost para:
+Os arquivos de `app/` encerram sem executar nada se forem chamados diretamente, mas as URLs não funcionam sem reescrita, e `.git/`, `docs/` e `tests/` ficariam acessíveis. Peça ao suporte da KingHost para:
 
-- apontar o document root para `www/teia/public`; ou
-- configurar a reescrita para `public/index.php`.
+- apontar o document root para `www/teia/public` (resolve tudo); ou
+- configurar a reescrita para `public/index.php` e negar acesso a `app/`, `bin/`, `docs/`, `tests/` e arquivos ocultos.
 
 ## Base path
 
